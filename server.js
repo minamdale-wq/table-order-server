@@ -520,12 +520,13 @@ function probe(addr, port) {
   return new Promise(done => {
     const tok = crypto.randomBytes(8).toString('hex');
     const req = http.get({ host: addr, port, path: '/api/probe?t=' + tok, timeout: 3000, agent: false }, r => {
-      let b = ''; r.on('data', c => { b += c; }); r.on('end', () => done(b.includes(tok) ? 'ok' : 'other')); r.on('error', () => done('other'));
+      let b = ''; r.on('data', c => { b += c; }); r.on('end', () => done(b.includes(tok) ? 'ok' : 'other(HTTP ' + r.statusCode + ')')); r.on('error', e => done('other(' + (e.code || e.message) + ')'));
     });
     req.on('timeout', () => { req.destroy(); done('timeout'); });
-    req.on('error', e => done(e.code === 'ECONNRESET' || /hang up/i.test(e.message) ? 'other' : 'error:' + (e.code || e.message)));
+    req.on('error', e => done(e.code === 'ECONNRESET' || /hang up/i.test(e.message) ? 'other(' + (e.code || 'hang up') + ')' : 'error:' + (e.code || e.message)));
   });
 }
+const isOther = r => typeof r === 'string' && r.startsWith('other');
 function banner(addrs, results) {
   console.log('\n==================== 테이블 오더 미니 서버 v' + curVersion() + ' ====================');
   if (!addrs.length) console.log('  와이파이/랜에 연결되어 있지 않습니다. 네트워크를 확인해 주세요.');
@@ -533,7 +534,7 @@ function banner(addrs, results) {
     console.log('  주문받는 태블릿 :  http://' + a + ':' + PORT + '/#t7');
     console.log('  주문용 태블릿   :  http://' + a + ':' + PORT + '/#t1  ~  #t6');
     const r = results[a];
-    if (r && r !== 'ok') console.log('  ※ 이 주소 접속 자가 확인 실패(' + r + '). 방화벽·보안 프로그램 설정을 확인해 주세요.');
+    if (r && r !== 'ok') console.log('  ※ 이 컴퓨터에서 이 주소로 자가 확인 실패(' + r + '). 태블릿에서 열리지 않으면 방화벽·보안 프로그램·VPN 설정을 확인해 주세요.');
   }
   console.log('  이 컴퓨터에서만 열 때 :  http://localhost:' + PORT + '/#t7');
   console.log('  데이터 폴더     :  ' + DATA);
@@ -542,20 +543,33 @@ function banner(addrs, results) {
 }
 const preferred = Number(process.env.PORT) || conf.port;
 const ports = [preferred, ...PORT_CANDIDATES].filter((v, i, a) => v && a.indexOf(v) === i);
+let fallbackOnly = false;
 function tryListen(i) {
-  if (i >= ports.length) { log('쓸 수 있는 포트를 찾지 못했습니다. 컴퓨터를 다시 시작한 뒤 다시 켜 주세요.'); process.exit(1); }
+  if (i >= ports.length) {
+    // 모든 포트에서 자가 확인이 실패 = 포트 문제가 아니라 이 컴퓨터의 보안·네트워크 설정 문제. 멈추지 말고 첫 포트로 그냥 켠다.
+    const fb = Math.max(0, ports.indexOf(8765));
+    log('모든 포트에서 자가 확인이 실패했습니다. 포트 문제가 아니므로 포트 ' + ports[fb] + '(으)로 그냥 켭니다.');
+    fallbackOnly = true; return tryListen(fb);
+  }
   PORT = ports[i];
   const onErr = e => {
     server.removeListener('listening', onOk);
-    if (e.code === 'EADDRINUSE' || e.code === 'EACCES') { log('포트 ' + PORT + '은(는) 다른 프로그램이 쓰고 있어 다음 포트를 시도합니다.'); return tryListen(i + 1); }
+    if (e.code === 'EADDRINUSE' || e.code === 'EACCES') {
+      log('포트 ' + PORT + '은(는) 다른 프로그램이 쓰고 있어 다음 포트를 시도합니다.');
+      if (fallbackOnly && i + 1 >= ports.length) { log('쓸 수 있는 포트를 찾지 못했습니다. 컴퓨터를 다시 시작한 뒤 다시 켜 주세요.'); process.exit(1); }
+      return tryListen(i + 1);
+    }
     log('서버 오류:', e.message); process.exit(1);
   };
   const onOk = async () => {
     server.removeListener('error', onErr);
     const addrs = lanAddresses(), results = {};
+    const local = await probe('127.0.0.1', PORT);
     for (const a of addrs) results[a] = await probe(a, PORT);
-    if (addrs.some(a => results[a] === 'other')) {
-      log('포트 ' + PORT + '을(를) 다른 프로그램이 가로채고 있어 다음 포트로 옮깁니다.');
+    // 이 컴퓨터 안에서도(127.0.0.1) 다른 프로그램이 답하면 진짜로 포트를 뺏긴 것 → 다음 포트로
+    const hijacked = isOther(local) || (!fallbackOnly && addrs.length && addrs.every(a => isOther(results[a])));
+    if (hijacked && !fallbackOnly) {
+      log('포트 ' + PORT + ' 자가 확인 실패(내부 ' + local + ', 와이파이 ' + addrs.map(a => results[a]).join('/') + ') → 다음 포트로 옮겨 봅니다.');
       return server.close(() => tryListen(i + 1));
     }
     if (conf.port !== PORT) { conf.port = PORT; saveConf(); }

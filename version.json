@@ -1,10 +1,10 @@
 {
- "version": "1.1.5",
+ "version": "1.1.6",
  "files": [
   "server.js",
   "public/index.html",
   "version.json",
   "README.md"
  ],
- "notes": "메뉴 가져오기 파일에 옵션(예: 아이스/핫)도 함께 들어가도록 개선."
+ "notes": "서버가 켜질 때 포트 자가 확인이 모두 실패하면 멈추지 않고 8765 포트로 그냥 켜지도록 수정."
 }
