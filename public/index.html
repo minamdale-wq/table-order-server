@@ -48,6 +48,11 @@ input[type=range]{padding:0;border:0;accent-color:var(--turf)}
 .cats{display:flex;flex-direction:column;gap:.35em;padding:1em .6em;overflow:auto;background:var(--turf2)}
 .cats button{text-align:left;padding:.7em .8em;border-radius:12px;font-weight:600;min-height:56px}
 .cats button.on{background:var(--turf);color:#fff}
+.subs{grid-column:1/-1;display:flex;gap:.5em;flex-wrap:wrap;position:sticky;top:-1em;background:var(--bg);padding:.5em 0;z-index:2}
+.subs button{min-height:52px;padding:.4em 1.3em;border-radius:999px;border:2px solid light-dark(#8e9c93,#6b7d72);background:var(--card);font-weight:800}
+.subs button.on{background:var(--turf);border-color:var(--turf);color:#fff}
+.gsec{grid-column:1/-1;margin:.5em 0 -.3em;font-size:1.15em;display:flex;align-items:center;gap:.6em}.gsec::after{content:'';flex:1;border-top:2px solid var(--line)}
+.catline{display:flex;flex-wrap:wrap;gap:8px;align-items:center;padding:10px 0;border-bottom:1px dashed var(--line)}.catline .tag.top{font-size:15px;font-weight:800;background:var(--turf);color:#fff}.catline .tag.top button{color:#fff}
 .grid{overflow:auto;padding:1em;display:grid;grid-template-columns:repeat(auto-fill,minmax(clamp(170px,14vw,300px),1fr));gap:1em;align-content:start}
 .mcard{position:relative;display:flex;flex-direction:column;text-align:left;background:var(--card);border:1px solid var(--line);border-radius:16px;overflow:hidden;min-height:44px}
 .mcard img,.mcard .ph{width:100%;aspect-ratio:4/3;object-fit:cover;display:block;background:var(--turf2)}
@@ -267,6 +272,8 @@ async function cap(n){for(let i=0;i<60&&!(window.claude&&window.claude.use);i++)
  if(!(window.claude&&window.claude.use))return null;try{return await window.claude.use(n)}catch(e){return null}}
 const saveConfig=p=>{const n={...S.config,...p};Object.keys(n).forEach(k=>{if(n[k]===undefined)delete n[k]});return w('config/main',r=>r.set(n))};
 const cats=()=>{const c=[...(S.config.categories||[])];S.menu.forEach(m=>{if(m.cat&&!c.includes(m.cat))c.push(m.cat)});return c};
+const subsOf=c=>[...(((S.config.subcats||{})[c])||[])];
+const subsAll=c=>{const s=subsOf(c);S.menu.forEach(m=>{if(m.cat===c&&m.sub&&!s.includes(m.sub))s.push(m.sub)});return s};
 const menuById=id=>S.menu.find(m=>m.id===id);
 const okYt=v=>typeof v==='string'&&/^[A-Za-z0-9_-]{11}$/.test(v);
 function ytId(u){u=String(u||'').trim();if(okYt(u))return u;try{const x=new URL(u);const h=x.hostname.replace(/^www\.|^m\./,'');if(h==='youtu.be')return okYt(x.pathname.slice(1,12))?x.pathname.slice(1,12):null;if(h.endsWith('youtube.com')||h.endsWith('youtube-nocookie.com')){const v=x.searchParams.get('v');if(okYt(v))return v;const m=/^\/(?:shorts|embed|live|v)\/([A-Za-z0-9_-]{11})/.exec(x.pathname);if(m)return m[1]}}catch(e){}return null}
@@ -400,7 +407,15 @@ function customerParts(){
  if(!cs.includes(S.cat))S.cat=cs[0]||null;
  $('#ccats').innerHTML=cs.map(c=>`<button class="${c===S.cat?'on':''}" data-act="cat" data-c="${esc(c)}">${esc(c)}</button>`).join('');
  const items=vis.filter(m=>m.cat===S.cat);
- $('#cgrid').innerHTML=items.length?items.map(m=>`<button class="mcard${m.soldOut?' so':''}" data-act="add" data-id="${esc(m.id)}"${m.soldOut?' disabled':''}>${blob(m.img)?`<img src="${blob(m.img)}" alt="">`:`<span class="ph">${esc(String(m.name||'?').slice(0,1))}</span>`}<span class="mn">${esc(m.name)}</span>${m.desc?`<span class="md">${esc(m.desc)}</span>`:''}<span class="mp">${won(m.price)}</span>${(m.groups||[]).length?'<span class="mo">옵션</span>':''}${m.soldOut?'<span class="stamp">품절</span>':''}</button>`).join(''):'<div class="empty">메뉴 준비 중입니다</div>';
+ const card=m=>`<button class="mcard${m.soldOut?' so':''}" data-act="add" data-id="${esc(m.id)}"${m.soldOut?' disabled':''}>${blob(m.img)?`<img src="${blob(m.img)}" alt="">`:`<span class="ph">${esc(String(m.name||'?').slice(0,1))}</span>`}<span class="mn">${esc(m.name)}</span>${m.desc?`<span class="md">${esc(m.desc)}</span>`:''}<span class="mp">${won(m.price)}</span>${(m.groups||[]).length?'<span class="mo">옵션</span>':''}${m.soldOut?'<span class="stamp">품절</span>':''}</button>`;
+ const subs=subsAll(S.cat).filter(sb=>items.some(m=>m.sub===sb));if(!subs.includes(S.sub))S.sub='';
+ let html;
+ if(!items.length)html='<div class="empty">메뉴 준비 중입니다</div>';
+ else if(!subs.length)html=items.map(card).join('');
+ else{const bar=`<div class="subs">${['',...subs].map(sb=>`<button class="${sb===S.sub?'on':''}" data-act="sub" data-s="${esc(sb)}">${sb?esc(sb):'전체'}</button>`).join('')}</div>`;
+  if(S.sub)html=bar+items.filter(m=>m.sub===S.sub).map(card).join('');
+  else{const rest=items.filter(m=>!subs.includes(m.sub));html=bar+subs.map(sb=>`<h3 class="gsec">${esc(sb)}</h3>`+items.filter(m=>m.sub===sb).map(card).join('')).join('')+(rest.length?'<h3 class="gsec">기타</h3>'+rest.map(card).join(''):'')}}
+ $('#cgrid').innerHTML=html;
  renderCart();
  const list=S.localVid?[{src:S.localVid}]:vids().map(x=>x.yt?{yt:x.yt}:{src:blob(x.id)});const sig=JSON.stringify(list);const v=$('#vid');
  if(v&&v.dataset.sig!==sig){v.dataset.sig=sig;S.vlist=list;S.vidx=0;vPlay()}
@@ -518,15 +533,16 @@ function vMenu(){
  const cs=cats();const uncat=S.menu.filter(m=>!m.cat);
  const row=m=>`<div class="mrow">${blob(m.img)?`<img src="${blob(m.img)}" alt="">`:`<span class="ph">${esc(String(m.name||'?').slice(0,1))}</span>`}<div><b>${esc(m.name)}</b> ${m.soldOut?'<span class="tag off">품절</span>':''}${m.hidden?' <span class="tag">숨김</span>':''}<div class="fine">${won(m.price)}${(m.groups||[]).length?' · 옵션 '+m.groups.length+'개':''}</div></div><div class="acts"><button class="btn sm ${m.soldOut?'':'ghost'}" data-act="msold" data-id="${esc(m.id)}">${m.soldOut?'품절 해제':'품절'}</button><button class="btn sm ghost" data-act="mhide" data-id="${esc(m.id)}">${m.hidden?'보이기':'숨기기'}</button><button class="btn sm ghost" data-act="medit" data-id="${esc(m.id)}">수정</button><button class="btn sm ghost" data-act="mdel" data-id="${esc(m.id)}">삭제</button></div></div>`;
  return `<div class="bar"><h2>메뉴 관리</h2><button class="btn" data-act="mnew">메뉴 추가</button></div>
- <div class="panel" style="margin-bottom:16px"><h3>분류</h3><div class="catrow">${(S.config.categories||[]).map((c,i)=>`<span class="tag">${esc(c)}<button data-act="catup" data-i="${i}" aria-label="앞으로">‹</button><button data-act="catdn" data-i="${i}" aria-label="뒤로">›</button><button data-act="catdel" data-i="${i}" aria-label="삭제">×</button></span>`).join('')||'<span class="fine">분류가 없습니다</span>'}</div>
- <div class="catrow"><input id="newCat" placeholder="새 분류 이름" style="max-width:260px"><button class="btn ghost" data-act="catadd">분류 추가</button></div></div>
+ <div class="panel" style="margin-bottom:16px"><h3>분류 <span class="fine">큰 분류 왼쪽, 하위 분류 오른쪽 · ‹ › 로 순서 변경</span></h3>${(S.config.categories||[]).map((c,i)=>`<div class="catline"><span class="tag top">${esc(c)}<button data-act="catup" data-i="${i}" aria-label="앞으로">‹</button><button data-act="catdn" data-i="${i}" aria-label="뒤로">›</button><button data-act="catdel" data-i="${i}" aria-label="삭제">×</button></span><span class="fine">하위:</span>${subsOf(c).map((sb,j)=>`<span class="tag">${esc(sb)}<button data-act="subup" data-i="${i}" data-j="${j}" aria-label="앞으로">‹</button><button data-act="subdn" data-i="${i}" data-j="${j}" aria-label="뒤로">›</button><button data-act="subdel" data-i="${i}" data-j="${j}" aria-label="삭제">×</button></span>`).join('')}<input id="newSub-${i}" placeholder="하위 분류 이름" style="max-width:170px;min-height:38px"><button class="btn sm ghost" data-act="subadd" data-i="${i}">하위 추가</button></div>`).join('')||'<span class="fine">분류가 없습니다</span>'}
+ <div class="catrow" style="margin-top:8px"><input id="newCat" placeholder="새 큰 분류 이름" style="max-width:260px"><button class="btn ghost" data-act="catadd">큰 분류 추가</button></div></div>
  ${S.menu.length?'':`<div class="panel"><b>등록된 메뉴가 없습니다.</b><span class="fine">메뉴·옵션·가격 ${NEED} — 실제 메뉴판을 기준으로 입력해 주세요. 여기서 바꾸면 모든 주문용 태블릿에 바로 반영됩니다.</span></div>`}
- ${cs.map(c=>{const ms=S.menu.filter(m=>m.cat===c);return ms.length?`<div class="panel" style="margin-bottom:12px;padding:6px"><h3 style="padding:10px">${esc(c)} <span class="fine">${ms.length}</span></h3>${ms.map(row).join('')}</div>`:''}).join('')}
+ ${cs.map(c=>{const ms=S.menu.filter(m=>m.cat===c);if(!ms.length)return '';const ss=subsAll(c).filter(sb=>ms.some(m=>m.sub===sb));const rest=ms.filter(m=>!ss.includes(m.sub));return `<div class="panel" style="margin-bottom:12px;padding:6px"><h3 style="padding:10px">${esc(c)} <span class="fine">${ms.length}</span></h3>${ss.length?ss.map(sb=>`<div class="fine" style="padding:8px 10px 0;font-weight:800;color:var(--turf)">${esc(sb)}</div>`+ms.filter(m=>m.sub===sb).map(row).join('')).join('')+(rest.length?'<div class="fine" style="padding:8px 10px 0;font-weight:800">하위 분류 없음</div>'+rest.map(row).join(''):''):ms.map(row).join('')}</div>`}).join('')}
  ${uncat.length?`<div class="panel"><h3>분류 없음</h3>${uncat.map(row).join('')}</div>`:''}`}
 function menuModal(){const c=S.mctx,m=c.m;
  openModal(`<h2>${c.id?'메뉴 수정':'메뉴 추가'}</h2><div class="form">
  <label>이름<input data-f="name" value="${esc(m.name)}"></label>
  <label>분류<select data-f="cat"><option value="">선택</option>${cats().map(x=>`<option${x===m.cat?' selected':''}>${esc(x)}</option>`).join('')}</select></label>
+ ${m.cat&&subsAll(m.cat).length?`<label>하위 분류<select data-f="sub"><option value="">없음</option>${subsAll(m.cat).map(x=>`<option${x===m.sub?' selected':''}>${esc(x)}</option>`).join('')}</select></label>`:''}
  <label>가격 (원)<input data-f="price" data-num inputmode="numeric" value="${esc(m.price)}"></label>
  <label>정렬 순서<input data-f="sort" data-num inputmode="numeric" value="${esc(m.sort||0)}"></label>
  <label class="full">설명<input data-f="desc" value="${esc(m.desc)}"></label>
@@ -626,7 +642,8 @@ async function act(a,d,b){const c=S.mctx;
  case 'devchange':S.dev=null;LS.set('tod.dev','');try{history.replaceState(null,'',location.pathname+location.search)}catch(e){location.hash=''}S.role=null;route();break;
  case 'fs':try{await document.documentElement.requestFullscreen()}catch(e){toast('이 환경에서는 전체화면을 쓸 수 없습니다')}try{if(navigator.wakeLock)await navigator.wakeLock.request('screen')}catch(e){}break;
  /* 고객 */
- case 'cat':S.cat=d.c;customerParts();break;
+ case 'cat':S.cat=d.c;S.sub='';customerParts();$('#cgrid').scrollTop=0;break;
+ case 'sub':S.sub=d.s;customerParts();$('#cgrid').scrollTop=0;break;
  case 'add':{const m=menuById(d.id);if(!m||m.soldOut)return;if((m.groups||[]).length){S.mctx={type:'opt',mid:m.id,sel:{},qty:1};optModal()}else{addLine(m.id,[],1);toast(m.name+' 담았습니다','ok')}break}
  case 'optpick':{const g=+d.g,ci=+d.c,m=menuById(c.mid);const grp=m.groups[g];const s=c.sel[g]||[];c.sel[g]=grp.multi?(s.includes(ci)?s.filter(x=>x!==ci):[...s,ci]):(s.includes(ci)&&!grp.req?[]:[ci]);optModal();break}
  case 'optqty':c.qty=Math.max(1,Math.min(50,c.qty+(+d.d)));optModal();break;
@@ -663,7 +680,7 @@ async function act(a,d,b){const c=S.mctx;
  case 'paymeth':c.method=d.m;payModal();break;
  case 'paygo':{const ids=[...c.sel];let ok=0;for(const id of ids){const o=S.orders.find(x=>x.id===id);if(o&&await updOrder(o,{pay:'paid',payMethod:c.method,paidAt:NOW()},'결제 완료 ('+c.method+')'))ok++}toast(ok+'건 결제 완료로 기록했습니다','ok');c.sel=new Set();if(S.mctx)payModal();break}
  case 'payundo':{const o=S.orders.find(x=>x.id===d.id);if(o&&armed(b))await updOrder(o,{pay:'unpaid',payMethod:'',paidAt:null},'결제 기록 취소');break}
- case 'mnew':S.mctx={type:'menu',id:null,m:{name:'',cat:S.config.categories&&S.config.categories[0]||'',price:0,sort:0,desc:'',groups:[],soldOut:false,hidden:false}};menuModal();break;
+ case 'mnew':S.mctx={type:'menu',id:null,m:{name:'',cat:S.config.categories&&S.config.categories[0]||'',sub:'',price:0,sort:0,desc:'',groups:[],soldOut:false,hidden:false}};menuModal();break;
  case 'medit':{const m=menuById(d.id);if(!m)return;const cp=JSON.parse(JSON.stringify(m));delete cp.id;S.mctx={type:'menu',id:m.id,m:cp};menuModal();break}
  case 'msold':{const m=menuById(d.id);if(m)await w('menu/'+m.id,r=>r.update({soldOut:!m.soldOut}));break}
  case 'mhide':{const m=menuById(d.id);if(m)await w('menu/'+m.id,r=>r.update({hidden:!m.hidden}));break}
@@ -673,12 +690,15 @@ async function act(a,d,b){const c=S.mctx;
  case 'mcadd':c.m.groups[+d.g].choices.push({name:'',price:0});menuModal();break;
  case 'mcrm':c.m.groups[+d.g].choices.splice(+d.c,1);menuModal();break;
  case 'mimgrm':delete c.m.img;menuModal();break;
- case 'msave':{const m=c.m;m.name=String(m.name||'').trim();if(!m.name)return toast('이름을 넣어 주세요','bad');if(!m.cat)return toast('분류를 골라 주세요','bad');
+ case 'msave':{const m=c.m;m.name=String(m.name||'').trim();if(!m.name)return toast('이름을 넣어 주세요','bad');if(!m.cat)return toast('분류를 골라 주세요','bad');if(m.sub&&!subsAll(m.cat).includes(m.sub))m.sub='';
   m.price=Math.max(0,Number(m.price)||0);m.sort=Number(m.sort)||0;m.groups=(m.groups||[]).map(g=>({name:String(g.name||'').trim(),req:!!g.req,multi:!!g.multi,choices:(g.choices||[]).map(x=>({name:String(x.name||'').trim(),price:Number(x.price)||0})).filter(x=>x.name)})).filter(g=>g.name&&g.choices.length);
   const id=c.id||('m'+NOW().toString(36));if(await w('menu/'+id,r=>r.set({...m,updatedAt:NOW()}))){closeModal();toast('저장했습니다. 모든 태블릿에 반영됩니다','ok')}break}
  case 'catadd':{const v=($('#newCat').value||'').trim();if(!v)return;const cs=S.config.categories||[];if(cs.includes(v))return toast('이미 있는 분류입니다');$('#newCat').value='';await saveConfig({categories:[...cs,v]});break}
  case 'catup':case 'catdn':{const cs=[...(S.config.categories||[])];const i=+d.i,j=a==='catup'?i-1:i+1;if(j<0||j>=cs.length)return;[cs[i],cs[j]]=[cs[j],cs[i]];await saveConfig({categories:cs});break}
- case 'catdel':{const cs=[...(S.config.categories||[])];const n=cs[+d.i];if(S.menu.some(m=>m.cat===n))return toast('이 분류에 메뉴가 있어 지울 수 없습니다','bad');cs.splice(+d.i,1);await saveConfig({categories:cs});break}
+ case 'catdel':{const cs=[...(S.config.categories||[])];const n=cs[+d.i];if(S.menu.some(m=>m.cat===n))return toast('이 분류에 메뉴가 있어 지울 수 없습니다','bad');cs.splice(+d.i,1);const sc={...(S.config.subcats||{})};delete sc[n];await saveConfig({categories:cs,subcats:sc});break}
+ case 'subadd':{const c=(S.config.categories||[])[+d.i];const el=$('#newSub-'+d.i);const v=(el&&el.value||'').trim();if(!c||!v)return;const ss=subsOf(c);if(ss.includes(v))return toast('이미 있는 하위 분류입니다');el.value='';await saveConfig({subcats:{...(S.config.subcats||{}),[c]:[...ss,v]}});break}
+ case 'subup':case 'subdn':{const c=(S.config.categories||[])[+d.i];const ss=subsOf(c);const i=+d.j,j=a==='subup'?i-1:i+1;if(j<0||j>=ss.length)return;[ss[i],ss[j]]=[ss[j],ss[i]];await saveConfig({subcats:{...(S.config.subcats||{}),[c]:ss}});break}
+ case 'subdel':{const c=(S.config.categories||[])[+d.i];const ss=subsOf(c);const n=ss[+d.j];if(S.menu.some(m=>m.cat===c&&m.sub===n))return toast('이 하위 분류에 메뉴가 있어 지울 수 없습니다','bad');ss.splice(+d.j,1);await saveConfig({subcats:{...(S.config.subcats||{}),[c]:ss}});break}
  case 'tnew':S.mctx={type:'tab',id:null,t:{no:S.tablets.length+1,name:'',role:'customer',place:'',model:'',note:'',testMode:false}};tabModal();break;
  case 'tedit':{const t=S.tablets.find(x=>x.id===d.id);if(!t)return;const cp={...t};delete cp.id;S.mctx={type:'tab',id:t.id,t:cp};tabModal();break}
  case 'tsave':{const t=c.t;t.name=String(t.name||'').trim();if(!t.name)return toast('이름을 넣어 주세요','bad');const id=c.id||('t'+NOW().toString(36));if(await w('tablets/'+id,r=>r.set({...t,no:Number(t.no)||0})))closeModal();break}
@@ -720,7 +740,7 @@ function bind(e){const el=e.target,c=S.mctx;
  if(e.type==='change'&&el.id==='incF'){S.incFilter=el.value;el.blur();counterTab();return}
  if(e.type==='change'&&['sDate','sFrom','sTo'].includes(el.id)){if(el.id==='sDate')S.salesDate=el.value;if(el.id==='sFrom')S.salesFrom=el.value;if(el.id==='sTo')S.salesTo=el.value;S.salesData=null;el.blur();if(!salesRows())loadSales();else counterTab();return}
  if(!c||!modal.contains(el))return;const obj=c.m||c.t||c.i||c.d||c;
- if(el.dataset.f){obj[el.dataset.f]=el.type==='checkbox'?el.checked:el.dataset.num!=null?(el.value===''?'':Number(el.value)):el.value}
+ if(el.dataset.f){obj[el.dataset.f]=el.type==='checkbox'?el.checked:el.dataset.num!=null?(el.value===''?'':Number(el.value)):el.value;if(e.type==='change'&&el.dataset.f==='cat'&&c.type==='menu'){c.m.sub='';menuModal();return}}
  if(el.dataset.p){const k=el.dataset.p.split('.');const g=c.m.groups[+k[0]];if(!g)return;if(k[1]==='c'){const ch=g.choices[+k[2]];if(ch)ch[k[3]]=k[3]==='price'?(Number(el.value)||0):el.value}else g[k[1]]=el.type==='checkbox'?el.checked:el.value}}
 document.addEventListener('input',bind);
 document.addEventListener('change',e=>{bind(e);upload(e)});
