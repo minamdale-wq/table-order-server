@@ -1,10 +1,10 @@
 {
- "version": "1.2.0",
+ "version": "1.3.0",
  "files": [
   "server.js",
   "public/index.html",
   "version.json",
   "README.md"
  ],
- "notes": "영업 준비 중 그림은 주문 칸에만 나오고, 아래 동영상은 계속 재생."
+ "notes": "주문용 태블릿 새 디자인: 크림색 바탕·숲색 버튼·금색 장식, 주문 칸이 동영상 위에 떠 있는 모양, 동영상은 화면을 꽉 채움."
 }

@@ -3,7 +3,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>테이블 오더 (매장 서버)</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Gothic+A1:wght@400;600;800&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
+<link href="https://fonts.googleapis.com/css2?family=Gothic+A1:wght@400;600;800&family=Noto+Serif+KR:wght@600;700&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
 <style>
 /* VOICE: 매장 카운터 장비처럼 단단하고 큼직하게, 군더더기 없이
    IDEA: 스크린골프 룸의 잔디색 스코어보드 + 주방 주문 전표
@@ -84,6 +84,80 @@ input[type=range]{padding:0;border:0;accent-color:var(--turf)}
 .vid .vempty{position:absolute;inset:0;display:grid;place-items:center;color:#9aa;font-size:.9em}.vid .vempty[hidden]{display:none}
 .closedov{position:fixed;top:0;left:0;right:0;bottom:var(--vidh,40vh);z-index:15;background:#0d1a14;display:grid;place-items:center;overflow:hidden}.closedov[hidden]{display:none}.closedov .cbg{position:absolute;inset:-40px;background-size:cover;background-position:center;filter:blur(28px) brightness(.55)}.closedov img{position:relative;max-width:100%;max-height:100%;object-fit:contain}.closedov .ctxt{position:relative;color:#fff;font-size:clamp(32px,7vw,96px);font-weight:800;text-align:center;line-height:1.3}.closedov .ctap{position:absolute;left:0;top:0;width:120px;height:120px;background:transparent;border:0;z-index:2}.khead .btn.open-on{background:#fff!important;border-color:#fff!important;color:#c0392b!important}.khead .btn.open-off{background:#f5b301!important;border-color:#f5b301!important;color:#1b1b1b!important}.khead .pill.closed{background:#c0392b!important;color:#fff!important;font-weight:800}
 @media (max-aspect-ratio:4/5){.cbody{grid-template-columns:minmax(0,1fr) clamp(280px,36vw,460px);grid-template-rows:auto minmax(0,1fr)}.cats{grid-column:1/-1;flex-direction:row;overflow-x:auto}.cats button{flex:none}}
+
+/* ===== 고객 화면 디자인 (크림 + 숲색 + 금색, 떠 있는 주문 패널) ===== */
+html.cx{color-scheme:light;--bg:#f6efe4;--card:#fffdf8;--ink:#2b2620;--mute:#7c7366;--line:#e8dccb;--turf:#24503a;--turf2:#efe6d6;--gold:#b08b58;--gold2:#dcc7a3;--hot:#24503a;--vov:calc((100dvh - var(--vidh)) * .1)}
+html.cx body{background:#14130f}
+.cx .cust{position:relative;display:block;height:100dvh;overflow:hidden;font-size:clamp(14px,min(1.15vw,1.7vh),26px)}
+.cx .cpanel{position:absolute;top:0;left:0;right:0;height:calc(100dvh - var(--vidh));z-index:2;display:flex;flex-direction:column;overflow:hidden;
+ background:radial-gradient(120% 80% at 50% 0%,#fbf6ee 0%,#f5ecdf 60%,#efe3d1 100%);border-radius:0 0 clamp(22px,2.6vw,44px) clamp(22px,2.6vw,44px);
+ box-shadow:0 28px 50px -12px #000000a8,0 10px 18px -8px #0000006b,inset 0 -1px 0 #ffffff80}
+.cx .leafdeco{position:absolute;pointer-events:none;z-index:0;filter:drop-shadow(0 2px 2px #0000001f)}
+.cx .leafdeco.tl{left:-1.2em;top:-1.6em;width:clamp(100px,11vw,210px);opacity:.9}
+.cx .leafdeco.r{right:-2em;bottom:6%;width:clamp(90px,10vw,180px);opacity:.45;transform:scaleX(-1) rotate(-20deg)}
+.cx .chead{position:relative;z-index:1;display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);align-items:center;gap:1em;background:none;color:var(--ink);padding:.8em 1.6em .6em;border-bottom:1px solid var(--line);margin:0 1.2em}
+.cx .cleft{display:flex;align-items:center;gap:.7em;font-weight:600;color:#3d372f;padding-left:clamp(60px,6vw,120px);white-space:nowrap;overflow:hidden}
+.cx .csep{width:1px;height:1em;background:#bfb19b}.cx .csep[hidden]{display:none}
+.cx .ctitle{flex:none;font-weight:800;font-size:1.05em;color:var(--ink)}
+.cx .cbadge{background:#ffe9a8;color:#5a4300}
+.cx .logo{display:flex;flex-direction:column;align-items:center;gap:.1em;color:var(--turf);min-height:44px;padding:0 .5em}
+.cx .logo .emb{width:2.2em;height:1.2em;color:#8a6a3c}
+.cx .lname{font-family:"Noto Serif KR","Noto Serif CJK KR","Source Han Serif K","Nanum Myeongjo",serif;font-weight:700;font-size:1.65em;letter-spacing:-.01em;color:#3a3024;line-height:1.15;white-space:nowrap}
+.cx .lorn{display:flex;align-items:center;gap:.35em;width:100%;justify-content:center}.cx .lorn i{height:1px;flex:1;max-width:4.5em;background:linear-gradient(90deg,transparent,var(--gold))}.cx .lorn i:last-child{transform:scaleX(-1)}.cx .lorn b{width:.38em;height:.38em;background:var(--gold);transform:rotate(45deg)}
+.cx .cright{display:flex;align-items:center;justify-content:flex-end;gap:.6em}
+.cx .conn{color:#4a4339;font-weight:600}.cx .conn i{background:#3fb56b;box-shadow:0 0 0 3px #3fb56b26}.cx .conn.off i{background:#d6392a}
+.cx .hbtn{display:inline-flex;align-items:center;gap:.4em;min-height:48px;padding:.35em 1.1em;border-radius:999px;font-weight:700;background:var(--card);color:#3a3328;border:1px solid var(--gold2);box-shadow:0 2px 6px #6b4e2412}
+.cx .hbtn svg{width:1.15em;height:1.15em}
+.cx .hbtn.call{background:var(--turf);color:#fff;border-color:var(--turf);box-shadow:0 4px 10px #24503a40}.cx .hbtn.call.on{background:#e9b949;border-color:#e9b949;color:#3a2a00}
+.cx .cbody{position:relative;z-index:1;flex:1;min-height:0;display:grid;grid-template-columns:minmax(0,1fr) clamp(290px,31vw,520px);grid-template-rows:auto minmax(0,1fr);column-gap:1.2em;padding:0 1.2em 1.1em}
+.cx .cats{grid-column:1;grid-row:1;flex-direction:row;align-items:center;gap:.2em;background:none;padding:.9em 0 .8em;overflow-x:auto;border-bottom:1.5px solid var(--gold2);margin-bottom:.2em}
+.cx .cats button{flex:none;display:inline-flex;align-items:center;gap:.45em;min-height:52px;padding:.45em 1.3em;border-radius:999px;font-weight:700;color:#3a3328;position:relative}
+.cx .cats button svg{width:1.35em;height:1.35em;color:#5a4a33}
+.cx .cats button+button::before{content:'';position:absolute;left:-.1em;top:28%;bottom:28%;width:1px;background:#d3c4ab}
+.cx .cats button.on{background:linear-gradient(180deg,#2d5e45,#1f4632);color:#fff;box-shadow:0 6px 14px -4px #1f463270,inset 0 1px 0 #ffffff26}.cx .cats button.on svg{color:#fff}
+.cx .cats button.on::before,.cx .cats button.on+button::before{display:none}
+.cx .grid{grid-column:1;grid-row:2;padding:.8em .2em 1.6em;-webkit-mask-image:linear-gradient(#000 calc(100% - 2em),transparent);mask-image:linear-gradient(#000 calc(100% - 2em),transparent);grid-template-columns:repeat(auto-fill,minmax(clamp(180px,19vw,330px),1fr));gap:1em}
+.cx .subs{position:sticky;top:-.8em;background:linear-gradient(#f6eee2 75%,#f6eee200);padding:.5em 0 .7em;gap:.45em}
+.cx .subs button{min-height:46px;padding:.3em 1.1em;border:1px solid var(--gold2);background:var(--card);color:#4a4134;font-weight:700;box-shadow:0 1px 3px #6b4e2410}
+.cx .subs button.on{background:var(--turf);border-color:var(--turf);color:#fff}
+.cx .gsec{font-family:"Noto Serif KR","Noto Serif CJK KR",serif;color:#3a3024;font-weight:700}.cx .gsec::after{border-top:1px solid var(--gold2)}
+.cx .mcard{background:var(--card);border:1px solid #efe5d5;border-radius:18px;box-shadow:0 8px 18px -8px #5a3d1a33,0 2px 4px #5a3d1a12;padding:0 0 .2em;transition:transform .12s}
+.cx .mcard:active{transform:scale(.98)}
+.cx .mcard img,.cx .mcard .ph{border-radius:18px 18px 0 0;background:#f1e8da}
+.cx .mcard .ph{color:#b08b58;font-family:"Noto Serif KR",serif}
+.cx .mcard .mn{padding:.65em .85em 0;font-size:1.05em;color:#2b2620}
+.cx .mcard .md{padding:.2em .85em 0;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;color:#8a8073}
+.cx .mcard .mp{padding:.45em 3em .7em .85em;color:#2f6b47;font-size:1.08em}
+.cx .mcard .plus{position:absolute;right:.7em;bottom:.65em;width:1.9em;height:1.9em;border-radius:50%;border:1.6px solid var(--gold);color:#9a7746;display:grid;place-items:center;background:#fffdf8}
+.cx .mcard .plus svg{width:1.1em;height:1.1em}
+.cx .mcard .mo{background:#fffdf8e6;color:#5a4a33;border:1px solid var(--gold2);border-radius:999px;padding:.1em .6em}
+.cx .cart{grid-column:2;grid-row:1/3;align-self:stretch;margin:.9em 0 .4em;border:1px solid #eadfcd;border-radius:22px;background:#fffdf9;box-shadow:0 14px 30px -14px #5a3d1a40;overflow:hidden}
+.cx .carth{padding:1em 1.2em;border-bottom:1px solid var(--line);margin:0 .4em}
+.cx .carth svg{width:1.6em;height:1.6em;color:#4a3f30}
+.cx .carth b{font-size:1.2em}
+.cx .carth .cnt{background:#f1e8da;color:#4a4134;border-radius:999px;padding:.15em .8em;font-weight:700;font-size:.9em}
+.cx .carth .link{min-height:36px}
+.cx .lines{padding:.4em 1.2em}
+.cx .line{border-bottom:1px dashed var(--line)}
+.cx .qty button{border-color:var(--gold2);color:#5a4a33;background:#fffdf8}
+.cx .empty{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:.6em;padding:1em;min-height:100%;color:#5d554a}
+.cx .empty svg{width:4.2em;height:4.2em;color:#9a7746}
+.cx .cartf{padding:1em 1.2em 1.1em;border-top:1px solid var(--line);margin:0 .4em}
+.cx .sum{font-size:1.15em}.cx .sum b{font-size:1.75em;color:#2b2620}
+.cx .cta{display:flex;align-items:center;justify-content:center;gap:.8em;min-height:66px;border-radius:999px;background:linear-gradient(180deg,#2e5f45,#1d4430);color:#fff;font-size:1.3em;letter-spacing:.02em;box-shadow:0 10px 20px -8px #1d4430a0,inset 0 1px 0 #ffffff30}
+.cx .cta .arr{display:grid;place-items:center;width:1.6em;height:1.6em;border-radius:50%;background:#ffffff1f}.cx .cta .arr svg{width:1em;height:1em}
+.cx .cta:disabled{opacity:.5}
+.cx .fine.pay{display:flex;align-items:center;justify-content:center;gap:.5em;color:#5d554a;font-size:.85em}.cx .fine.pay svg{width:1.3em;height:1.3em;flex:none}
+.cx .vid{position:absolute;left:0;right:0;bottom:0;height:calc(var(--vidh) + var(--vov));z-index:1;background:#0f0e0b}
+.cx .vid video{object-fit:cover}
+.cx .closedov{bottom:var(--vidh);z-index:15;border-radius:0 0 clamp(22px,2.6vw,44px) clamp(22px,2.6vw,44px)}
+html.cx .sheet{background:#fffdf9;border:1px solid #eadfcd}
+html.cx .modal .cta{background:linear-gradient(180deg,#2e5f45,#1d4430);border-radius:999px}
+html.cx .chip{border:1.5px solid var(--gold2);background:#fffdf8;color:#3a3328;border-radius:999px;min-width:5.5em}html.cx .chip.on{background:var(--turf);border-color:var(--turf);color:#fff}
+html.cx .modal .qty button{border-color:var(--gold2);background:#fffdf8}html.cx .modal .btn.ghost{border-radius:999px;border-color:var(--gold2)}
+@media (min-aspect-ratio:4/3){.cx .grid{grid-template-columns:repeat(auto-fill,minmax(clamp(160px,12.5vw,280px),1fr))}.cx .mcard img,.cx .mcard .ph{aspect-ratio:16/11}.cx .chead{padding:.5em 1.6em .4em}.cx .lname{font-size:1.45em}.cx .cats{padding:.6em 0 .55em}.cx .cats button{min-height:46px}.cx .empty svg{width:3em;height:3em}}
+@media (max-aspect-ratio:4/5){.cx .cbody{grid-template-columns:minmax(0,1fr) clamp(260px,36vw,460px)}.cx .cleft{padding-left:clamp(40px,8vw,110px)}}
+@media (max-width:900px){.cx .chead{grid-template-columns:auto 1fr;}.cx .logo{display:none}.cx .cleft{padding-left:1em}}
 /* ---------- 모달 ---------- */
 .modal{position:fixed;inset:0;background:#000000b8;display:grid;place-items:center;padding:16px;z-index:20}
 .modal[hidden]{display:none}
@@ -268,6 +342,25 @@ const S={db:null,room:null,assets:null,ready:false,role:null,config:{},menu:[],t
  offlineSince:null,openInc:{},lostTimers:{},subs:[],mctx:null,pending:false,today:dkey(),booted:{},taps:[]};
 const hashDev=()=>{const h=location.hash.slice(1);return /^t[a-z0-9]{0,30}$/.test(h)?h:null};
 S.dev=hashDev()||LS.get('tod.dev')||null;
+
+/* ---- 고객 화면 아이콘·장식 (선 아이콘, 금색/숲색) ---- */
+const SV=(b,vb='0 0 24 24')=>`<svg viewBox="${vb}" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${b}</svg>`;
+const ICON={
+ bowl:SV('<path d="M3 11h18a9 9 0 0 1-18 0Z"/><path d="M7 7c0-1.5 1-1.5 1-3M11 7c0-1.5 1-1.5 1-3M15 7c0-1.5 1-1.5 1-3"/><path d="M8 20h8"/>'),
+ cup:SV('<path d="M4 9h12v5a5 5 0 0 1-5 5H9a5 5 0 0 1-5-5Z"/><path d="M16 10h1.5a2.5 2.5 0 0 1 0 5H16"/><path d="M8 3c0 1.5-1 1.5-1 3M12 3c0 1.5-1 1.5-1 3"/>'),
+ leaf:SV('<path d="M20 4C10 4 4 9 4 16c0 1.5.3 2.8.8 4C14 20 20 14 20 4Z"/><path d="M4.8 20C8 15 12 11 17 8"/><path d="M10 12.5 9.6 9M13 10.5l3 .2"/>'),
+ dot:SV('<circle cx="12" cy="12" r="4"/>'),
+ plus:SV('<path d="M12 6v12M6 12h12"/>'),
+ person:SV('<circle cx="12" cy="8" r="4"/><path d="M4 21c1.5-4 4.5-6 8-6s6.5 2 8 6"/>'),
+ list:SV('<path d="M9 6h11M9 12h11M9 18h11"/><circle cx="4.5" cy="6" r=".6" fill="currentColor"/><circle cx="4.5" cy="12" r=".6" fill="currentColor"/><circle cx="4.5" cy="18" r=".6" fill="currentColor"/>'),
+ basket:SV('<path d="M3 10h18l-2 10H5Z"/><path d="M8 10l4-6 4 6"/><path d="M9.5 14v3M14.5 14v3"/>'),
+ basketBig:SV('<path d="M8 30h48l-6 26H14Z"/><path d="M20 30l12-16 12 16"/><path d="M25 39v9M32 39v9M39 39v9"/><path d="M47 12l2-5M52 17l5-2M50 22h5" stroke-width="2"/>','0 0 64 64'),
+ arrow:SV('<path d="M5 12h14M13 6l6 6-6 6"/>'),
+ card:SV('<rect x="3" y="5" width="18" height="14" rx="2.5"/><path d="M3 10h18M7 15h4"/>'),
+ emblem:`<svg class="emb" viewBox="0 0 64 34" aria-hidden="true"><g fill="currentColor"><path d="M32 2c5 6 5 14 0 22-5-8-5-16 0-22Z"/><path d="M30 26C22 24 15 18 13 9c8 1 15 7 17 17Z"/><path d="M34 26c8-2 15-8 17-17-8 1-15 7-17 17Z"/><path d="M28 30c-7 2-14 1-20-3 6-3 13-3 20 3Z" opacity=".75"/><path d="M36 30c7 2 14 1 20-3-6-3-13-3-20 3Z" opacity=".75"/></g></svg>`};
+const catIcon=c=>/분식|라면|떡|밥|식사/.test(c)?ICON.bowl:/음료|커피|드링크|차|주스/.test(c)?ICON.cup:/샐러|샐러드|포케|그린/.test(c)?ICON.leaf:ICON.dot;
+const leafBranch=(cls)=>`<svg class="leafdeco ${cls}" viewBox="0 0 260 200" aria-hidden="true"><g fill="none" stroke="#6f8a4a" stroke-width="2.2" stroke-linecap="round"><path d="M-10 30C60 40 120 70 200 150"/></g>${[[30,33,-20],[62,40,10],[85,52,-35],[112,66,20],[132,82,-30],[155,100,25],[172,118,-25],[190,138,35]].map(([x,y,r],k)=>`<ellipse cx="${x}" cy="${y}" rx="26" ry="9.5" transform="rotate(${r+(k%2?40:-40)} ${x} ${y}) translate(${k%2?14:-14} 0)" fill="${['#7f9a57','#93ad68','#6c8746','#a3b97a'][k%4]}" opacity=".85"/>`).join('')}</svg>`;
+const LEAF_TL=leafBranch('tl'),LEAF_R=leafBranch('r');
 const me=()=>S.tablets.find(t=>t.id===S.dev);
 const isOpen=()=>S.config.open!==false;
 const closedSrc=()=>blob(S.config.closedImg)||(window.TOD_API?'/closed.jpg':'');
@@ -453,8 +546,9 @@ function vPlay(){const v=$('#vid'),yw=$('#ytwrap');if(!v)return;const l=S.vlist|
    events:{onReady:e=>{e.target.mute();e.target.playVideo()},onStateChange:e=>{if(e.data===0)vNext()},onError:()=>{vMsg('이 유튜브 영상은 재생할 수 없습니다 (퍼가기 금지 또는 삭제)');S.vRetry=setTimeout(()=>{if((S.vlist||[]).length>1)vNext();else vMsg('이 유튜브 영상은 재생할 수 없습니다 (퍼가기 금지 또는 삭제)')},4000)}}})})
  .catch(()=>{S.ytDown=NOW();vMsg('유튜브에 연결할 수 없습니다 (태블릿 인터넷 확인)');S.vRetry=setTimeout(()=>{if((S.vlist||[]).length>1)vNext();else vPlay()},l.length>1?3000:30000)})}
 function customerShell(){
- app.innerHTML=`<div class="cust"><header class="chead"><button class="logo" data-act="logo" aria-label="매장 메뉴">${esc(S.config.storeName||'주문')}</button><div class="ctitle" id="ctitle"></div><span id="ctest"></span><span id="conn" class="conn"></span><button class="hbtn call" data-act="call" id="callBtn">직원 호출</button><button class="hbtn" data-act="myorders">주문 내역</button></header>
- <div class="cbody"><nav class="cats" id="ccats" aria-label="메뉴 분류"></nav><section class="grid" id="cgrid"></section><aside class="cart" id="ccart"></aside></div>
+ document.documentElement.classList.add('cx');
+ app.innerHTML=`<div class="cust"><div class="cpanel" id="cpanel">${LEAF_TL}${LEAF_R}<header class="chead"><div class="cleft"><span id="cstore"></span><i class="csep"></i><span class="ctitle" id="ctitle"></span><span id="ctest"></span></div><button class="logo" data-act="logo" aria-label="매장 메뉴">${ICON.emblem}<span class="lname" id="lname"></span><span class="lorn"><i></i><b></b><i></i></span></button><div class="cright"><span id="conn" class="conn"></span><button class="hbtn call" data-act="call" id="callBtn">${ICON.person}<span>직원 호출</span></button><button class="hbtn" data-act="myorders">${ICON.list}<span>주문 내역</span></button></div></header>
+ <div class="cbody"><nav class="cats" id="ccats" aria-label="메뉴 분류"></nav><section class="grid" id="cgrid"></section><aside class="cart" id="ccart"></aside></div></div>
  <div class="vid"><video id="vid" muted autoplay playsinline></video><div id="ytwrap" hidden><div id="yt"></div></div><div class="vempty" id="vempty">동영상이 등록되지 않았습니다</div></div></div><div class="closedov" id="closedov" hidden><div class="cbg" id="closedbg"></div><img id="closedimg" alt="영업 준비 중" hidden><div class="ctxt" id="closedtxt">영업 준비 중</div><button class="ctap" data-act="logo" aria-label="매장 메뉴"></button></div>`;
  const v=$('#vid');
  v.addEventListener('ended',()=>vNext());
@@ -464,14 +558,13 @@ function customerShell(){
 function customerParts(){
  closedUI();const t=me();if(!t||!$('#cgrid'))return;
  document.documentElement.style.setProperty('--vidh',(Number(S.config.videoPct)||40)+'vh');
- $('#ctitle').textContent=t.place||t.name||'';
+ $('#ctitle').textContent=t.place||t.name||'';const sn=S.config.storeName||'';$('#cstore').textContent=sn;$('#cstore').hidden=!sn;$('.csep').hidden=!sn;$('#lname').textContent=sn||'주문';
  $('#ctest').innerHTML=t.testMode?'<span class="cbadge">테스트 모드 · 실제 주문 아님</span>':'';
- const lg=$('.logo');if(lg)lg.textContent=S.config.storeName||'주문';
  const vis=S.menu.filter(m=>!m.hidden);const cs=cats().filter(c=>vis.some(m=>m.cat===c));
  if(!cs.includes(S.cat))S.cat=cs[0]||null;
- $('#ccats').innerHTML=cs.map(c=>`<button class="${c===S.cat?'on':''}" data-act="cat" data-c="${esc(c)}">${esc(c)}</button>`).join('');
+ $('#ccats').innerHTML=cs.map(c=>`<button class="${c===S.cat?'on':''}" data-act="cat" data-c="${esc(c)}">${catIcon(c)}<span>${esc(c)}</span></button>`).join('');
  const items=vis.filter(m=>m.cat===S.cat);
- const card=m=>`<button class="mcard${m.soldOut?' so':''}" data-act="add" data-id="${esc(m.id)}"${m.soldOut?' disabled':''}>${blob(m.img)?`<img src="${blob(m.img)}" alt="">`:`<span class="ph">${esc(String(m.name||'?').slice(0,1))}</span>`}<span class="mn">${esc(m.name)}</span>${m.desc?`<span class="md">${esc(m.desc)}</span>`:''}<span class="mp">${won(m.price)}</span>${(m.groups||[]).length?'<span class="mo">옵션</span>':''}${m.soldOut?'<span class="stamp">품절</span>':''}</button>`;
+ const card=m=>`<button class="mcard${m.soldOut?' so':''}" data-act="add" data-id="${esc(m.id)}"${m.soldOut?' disabled':''}>${blob(m.img)?`<img src="${blob(m.img)}" alt="">`:`<span class="ph">${esc(String(m.name||'?').slice(0,1))}</span>`}<span class="mn">${esc(m.name)}</span>${m.desc?`<span class="md">${esc(m.desc)}</span>`:''}<span class="mp">${won(m.price)}</span><span class="plus" aria-hidden="true">${ICON.plus}</span>${(m.groups||[]).length?'<span class="mo">옵션</span>':''}${m.soldOut?'<span class="stamp">품절</span>':''}</button>`;
  const subs=subsAll(S.cat).filter(sb=>items.some(m=>m.sub===sb));if(!subs.includes(S.sub))S.sub='';
  let html;
  if(!items.length)html='<div class="empty">메뉴 준비 중입니다</div>';
@@ -491,9 +584,9 @@ function lineCalc(l){const m=menuById(l.mid);if(!m)return{ok:false,why:'메뉴�
  return{ok:true,unit,name:m.name,opts}}
 function renderCart(){
  const el=$('#ccart');if(!el)return;const calc=S.cart.map(lineCalc);const total=calc.reduce((s,c,i)=>s+c.unit*S.cart[i].qty,0);const bad=calc.some(c=>!c.ok);const cnt=S.cart.reduce((s,l)=>s+l.qty,0);
- el.innerHTML=`<div class="carth"><b>장바구니</b><span>${cnt}개</span>${S.cart.length?'<button class="link" data-act="cartclear">비우기</button>':''}</div>
- <div class="lines">${S.cart.length?S.cart.map((l,i)=>{const c=calc[i];return `<div class="line"><div><b>${esc(c.name)}</b>${l.opts.length?`<small>${esc(l.opts.map(o=>o.n).join(', '))}</small>`:''}${c.ok?'':`<em>${esc(c.why)} · 빼 주세요</em>`}</div><b class="lp">${c.ok?won(c.unit*l.qty):'-'}</b><div class="qty"><button data-act="cq" data-i="${i}" data-d="-1" aria-label="빼기">−</button><span>${l.qty}</span><button data-act="cq" data-i="${i}" data-d="1" aria-label="더하기">+</button></div></div>`}).join(''):'<div class="empty">메뉴를 눌러 담아 주세요</div>'}</div>
- <div class="cartf"><div class="sum"><span>합계</span><b>${won(total)}</b></div><button class="cta" data-act="review"${!S.cart.length||bad?' disabled':''}>주문하기</button><p class="fine">결제는 이용 후 카운터에서 합니다 (후불)</p></div>`;
+ el.innerHTML=`<div class="carth">${ICON.basket}<b>장바구니</b><span class="cnt">${cnt}개</span>${S.cart.length?'<button class="link" data-act="cartclear">비우기</button>':''}</div>
+ <div class="lines">${S.cart.length?S.cart.map((l,i)=>{const c=calc[i];return `<div class="line"><div><b>${esc(c.name)}</b>${l.opts.length?`<small>${esc(l.opts.map(o=>o.n).join(', '))}</small>`:''}${c.ok?'':`<em>${esc(c.why)} · 빼 주세요</em>`}</div><b class="lp">${c.ok?won(c.unit*l.qty):'-'}</b><div class="qty"><button data-act="cq" data-i="${i}" data-d="-1" aria-label="빼기">−</button><span>${l.qty}</span><button data-act="cq" data-i="${i}" data-d="1" aria-label="더하기">+</button></div></div>`}).join(''):`<div class="empty">${ICON.basketBig}<span>메뉴를 눌러 담아 주세요</span></div>`}</div>
+ <div class="cartf"><div class="sum"><span>합계</span><b>${won(total)}</b></div><button class="cta" data-act="review"${!S.cart.length||bad?' disabled':''}><span>주문하기</span><i class="arr">${ICON.arrow}</i></button><p class="fine pay">${ICON.card}<span>결제는 이용 후 카운터에서 합니다 (후불)</span></p></div>`;
 }
 function optModal(){const c=S.mctx,m=menuById(c.mid);if(!m){closeModal();return}
  let unit=Number(m.price)||0;let missing=false;
@@ -829,7 +922,7 @@ async function act(a,d,b){const c=S.mctx;
  }}
 function callModal(){const c=S.mctx;const rs=S.config.callReasons||[];
  openModal(`<h2>직원을 부를까요?</h2>${rs.length?`<fieldset><legend>무엇이 필요하세요? <small class="fine">(선택)</small></legend><div class="chips">${rs.map(r=>`<button class="chip${c.reason===r?' on':''}" data-act="callpick" data-r="${esc(r)}">${esc(r)}</button>`).join('')}</div></fieldset>`:''}<div class="mfoot"><button class="btn ghost" data-act="close">닫기</button><button class="cta" data-act="callgo">직원 부르기</button></div>`,'big')}
-function callUI(){const b=$('#callBtn');if(!b)return;const on=(S.myCalls||[]).length>0;b.classList.toggle('on',on);b.textContent=on?'호출 중…':'직원 호출'}
+function callUI(){const b=$('#callBtn');if(!b)return;const on=(S.myCalls||[]).length>0;b.classList.toggle('on',on);b.innerHTML=ICON.person+'<span>'+(on?'호출 중…':'직원 호출')+'</span>'}
 function renderCalls(){const el=$('#kcalls');if(!el)return;const cs=(S.calls||[]);el.hidden=!cs.length;
  el.innerHTML=cs.map(x=>`<div class="callrow"><b>${esc(x.place||x.tabletName||x.tabletId)}</b><span>직원 호출${x.reason?' · '+esc(x.reason):''}${x.test?' (테스트)':''}</span><time>${hm(x.at)} · ${Math.max(0,Math.floor((NOW()-(x.at||0))/60000))}분 전</time><button class="btn sm" data-act="calldone" data-id="${esc(x.id)}">확인</button></div>`).join('')}
 setInterval(()=>{if(S.role==='counter')renderCalls()},30000);
