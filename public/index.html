@@ -757,7 +757,7 @@ async function act(a,d,b){const c=S.mctx;
    try{let img;if(typeof it.image==='string'&&it.image.startsWith('data:image/')){const b=await (await fetch(it.image)).blob();const r=await S.assets.upload(b,{type:b.type||'image/jpeg'});img=r.id}
     const ex=S.menu.find(m=>m.cat===it.cat&&m.name===it.name);
     const fields={name:it.name.trim(),cat:it.cat,sub:typeof it.sub==='string'?it.sub:'',price:Math.max(0,Number(it.price)||0),desc:typeof it.desc==='string'?it.desc:'',sort:Number(it.sort)||0,updatedAt:NOW()};
-    if(img)fields.img=img;if(typeof it.hidden==='boolean')fields.hidden=it.hidden;
+    if(img)fields.img=img;if(typeof it.hidden==='boolean')fields.hidden=it.hidden;if(Array.isArray(it.groups))fields.groups=it.groups.map(g=>({name:String(g.name||'').trim(),req:!!g.req,multi:!!g.multi,choices:(Array.isArray(g.choices)?g.choices:[]).map(x=>({name:String(x.name||'').trim(),price:Number(x.price)||0})).filter(x=>x.name)})).filter(g=>g.name&&g.choices.length);
     if(ex)await S.db.doc('menu/'+ex.id).update(fields);
     else await S.db.doc('menu/m'+(base+i).toString(36)).set({groups:[],soldOut:false,hidden:false,...fields});ok++}
    catch(x){fail++}}
