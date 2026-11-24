@@ -149,15 +149,38 @@ html.cx body{background:#14130f}
 .cx .cta:disabled{opacity:.5}
 .cx .fine.pay{display:flex;align-items:center;justify-content:center;gap:.5em;color:#5d554a;font-size:.85em}.cx .fine.pay svg{width:1.3em;height:1.3em;flex:none}
 .cx .vid{position:absolute;left:0;right:0;bottom:0;height:calc(var(--vidh) + var(--vov));z-index:1;background:#0f0e0b}
-.cx .vid video{object-fit:cover}
+.cx .vid video,.cx .vid #ytwrap{position:absolute;left:0;right:0;bottom:0;top:auto;width:100%;height:var(--vidh);object-fit:contain}.cx .vid .vempty{top:auto;height:var(--vidh)}
 .cx .closedov{bottom:var(--vidh);z-index:15;border-radius:0 0 clamp(22px,2.6vw,44px) clamp(22px,2.6vw,44px)}
 html.cx .sheet{background:#fffdf9;border:1px solid #eadfcd}
 html.cx .modal .cta{background:linear-gradient(180deg,#2e5f45,#1d4430);border-radius:999px}
 html.cx .chip{border:1.5px solid var(--gold2);background:#fffdf8;color:#3a3328;border-radius:999px;min-width:5.5em}html.cx .chip.on{background:var(--turf);border-color:var(--turf);color:#fff}
 html.cx .modal .qty button{border-color:var(--gold2);background:#fffdf8}html.cx .modal .btn.ghost{border-radius:999px;border-color:var(--gold2)}
 @media (min-aspect-ratio:4/3){.cx .grid{grid-template-columns:repeat(auto-fill,minmax(clamp(160px,12.5vw,280px),1fr))}.cx .mcard img,.cx .mcard .ph{aspect-ratio:16/11}.cx .chead{padding:.5em 1.6em .4em}.cx .lname{font-size:1.45em}.cx .cats{padding:.6em 0 .55em}.cx .cats button{min-height:46px}.cx .empty svg{width:3em;height:3em}}
-@media (max-aspect-ratio:4/5){.cx .cbody{grid-template-columns:minmax(0,1fr) clamp(260px,36vw,460px)}.cx .cleft{padding-left:clamp(40px,8vw,110px)}}
-@media (max-width:900px){.cx .chead{grid-template-columns:auto 1fr;}.cx .logo{display:none}.cx .cleft{padding-left:1em}}
+@media (max-width:900px) and (min-aspect-ratio:4/5){.cx .chead{grid-template-columns:auto 1fr;}.cx .logo{display:none}.cx .cleft{padding-left:1em}}
+.volbtn{position:absolute;right:clamp(12px,2vw,32px);bottom:clamp(12px,2vw,32px);z-index:4;width:clamp(48px,4.2em,84px);height:clamp(48px,4.2em,84px);border-radius:50%;display:grid;place-items:center;background:#1d4430d9;color:#fff;border:1.5px solid #ffffff59;box-shadow:0 6px 16px #0006;backdrop-filter:blur(6px)}
+.volbtn svg{width:48%;height:48%}.volbtn.off{background:#000000a6}
+.volpop{position:absolute;right:clamp(12px,2vw,32px);bottom:calc(clamp(12px,2vw,32px) + clamp(48px,4.2em,84px) + 12px);z-index:4;display:flex;align-items:center;gap:.7em;padding:.55em 1.1em .55em .6em;border-radius:999px;background:#fffdf8f2;color:#2b2620;box-shadow:0 10px 26px #0007;font-size:clamp(16px,1.6vw,24px)}
+.volpop[hidden]{display:none}
+.volpop .volm{width:2.4em;height:2.4em;min-width:44px;min-height:44px;border-radius:50%;display:grid;place-items:center;background:#1d4430;color:#fff}.volpop .volm svg{width:55%;height:55%}
+.volpop input[type=range]{width:clamp(160px,28vw,360px);height:44px;accent-color:#1d4430}
+.volpop b{min-width:2.2em;text-align:right;font-variant-numeric:tabular-nums}
+@media (max-aspect-ratio:4/5){
+ .cx .cust{font-size:clamp(14px,1.75vw,30px)}
+ .cx .chead{grid-template-columns:minmax(0,1fr) auto;grid-template-areas:"logo logo" "left right";row-gap:.35em;padding:.7em 1.2em .55em;margin:0 .9em}
+ .cx .logo{grid-area:logo}.cx .cleft{grid-area:left;padding-left:0}.cx .cright{grid-area:right}
+ .cx .lname{font-size:1.7em}
+ .cx .leafdeco.tl{width:clamp(90px,16vw,200px)}
+ .cx .cbody{grid-template-columns:minmax(0,1fr) clamp(240px,34vw,440px);column-gap:.9em;padding:0 .9em .9em}
+ .cx .cats{gap:.1em}.cx .cats button{padding:.45em 1em}
+ .cx .grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:.8em}
+ .cx .mcard img,.cx .mcard .ph{aspect-ratio:4/3}
+ .cx .mcard .md{font-size:.75em}
+ .cx .subs button{min-height:44px;padding:.25em .95em}
+ .cx .carth{padding:.85em 1em}.cx .lines{padding:.3em 1em}.cx .cartf{padding:.9em 1em 1em}
+ .cx .cta{min-height:60px;font-size:1.2em}
+ .cx .hbtn{min-height:46px;padding:.3em .95em}
+}
+@media (max-aspect-ratio:9/14){.cx .cbody{grid-template-columns:minmax(0,1fr) clamp(220px,36vw,420px)}.cx .grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
 /* ---------- 모달 ---------- */
 .modal{position:fixed;inset:0;background:#000000b8;display:grid;place-items:center;padding:16px;z-index:20}
 .modal[hidden]{display:none}
@@ -362,6 +385,22 @@ const catIcon=c=>/분식|라면|떡|밥|식사/.test(c)?ICON.bowl:/음료|커피
 const leafBranch=(cls)=>`<svg class="leafdeco ${cls}" viewBox="0 0 260 200" aria-hidden="true"><g fill="none" stroke="#6f8a4a" stroke-width="2.2" stroke-linecap="round"><path d="M-10 30C60 40 120 70 200 150"/></g>${[[30,33,-20],[62,40,10],[85,52,-35],[112,66,20],[132,82,-30],[155,100,25],[172,118,-25],[190,138,35]].map(([x,y,r],k)=>`<ellipse cx="${x}" cy="${y}" rx="26" ry="9.5" transform="rotate(${r+(k%2?40:-40)} ${x} ${y}) translate(${k%2?14:-14} 0)" fill="${['#7f9a57','#93ad68','#6c8746','#a3b97a'][k%4]}" opacity=".85"/>`).join('')}</svg>`;
 const LEAF_TL=leafBranch('tl'),LEAF_R=leafBranch('r');
 const me=()=>S.tablets.find(t=>t.id===S.dev);
+/* ---- 동영상 소리: 스피커 버튼 한 번 → 크기 조절 막대 ---- */
+ICON.vol=SV('<path d="M4 9h4l5-4v14l-5-4H4Z"/><path d="M16.5 8.5a5 5 0 0 1 0 7M19 6a8.5 8.5 0 0 1 0 12"/>');
+ICON.volLow=SV('<path d="M4 9h4l5-4v14l-5-4H4Z"/><path d="M16.5 8.5a5 5 0 0 1 0 7"/>');
+ICON.mute=SV('<path d="M4 9h4l5-4v14l-5-4H4Z"/><path d="M17 9.5l5 5M22 9.5l-5 5"/>');
+S.vol={v:50,m:true};
+function loadVol(){try{const x=JSON.parse(localStorage.getItem('tod_vol_'+S.dev)||'null');if(x&&typeof x.v==='number')S.vol={v:Math.max(0,Math.min(100,x.v)),m:!!x.m}}catch(e){}}
+function saveVol(){try{localStorage.setItem('tod_vol_'+S.dev,JSON.stringify(S.vol))}catch(e){}}
+const volOff=()=>S.vol.m||!S.vol.v||S.volBlocked;
+function ytVol(){try{if(!S.ytp||!S.ytp.setVolume)return;S.ytp.setVolume(S.vol.v);if(S.vol.m||!S.vol.v)S.ytp.mute();else S.ytp.unMute()}catch(e){}}
+function applyVol(){const v=$('#vid');if(v){v.volume=S.vol.v/100;const want=S.vol.m||!S.vol.v;if(want){v.muted=true}else{v.muted=false;if(v.getAttribute('src')){const pr=v.play();if(pr&&pr.catch)pr.catch(()=>{v.muted=true;S.volBlocked=true;volUI();v.play().catch(()=>{})})}}}ytVol();volUI()}
+function volUI(){const b=$('#volbtn');if(!b)return;const off=volOff();b.innerHTML=off?ICON.mute:(S.vol.v<45?ICON.volLow:ICON.vol);b.classList.toggle('off',off);
+ const m=$('#volm');if(m)m.innerHTML=off?ICON.mute:ICON.vol;const r=$('#volr');if(r&&document.activeElement!==r)r.value=S.vol.v;const t=$('#volv');if(t)t.textContent=(S.vol.m?0:S.vol.v)}
+function volPop(show){const p=$('#volpop');if(!p)return;p.hidden=!show;clearTimeout(S.volT);if(show)S.volT=setTimeout(()=>{p.hidden=true},6000)}
+document.addEventListener('pointerdown',()=>{if(S.volBlocked){S.volBlocked=false;applyVol()}},true);
+document.addEventListener('input',e=>{if(e.target&&e.target.id==='volr'){S.vol.v=Number(e.target.value)||0;S.vol.m=S.vol.v===0;S.volBlocked=false;applyVol();saveVol();volPop(true)}});
+
 const isOpen=()=>S.config.open!==false;
 const closedSrc=()=>blob(S.config.closedImg)||(window.TOD_API?'/closed.jpg':'');
 function closedUI(){const ov=$('#closedov');if(!ov)return;const shut=!isOpen();ov.hidden=!shut;if(!shut)return;const src=closedSrc(),im=$('#closedimg'),tx=$('#closedtxt'),bg=$('#closedbg');
@@ -541,16 +580,17 @@ function vPlay(){const v=$('#vid'),yw=$('#ytwrap');if(!v)return;const l=S.vlist|
  if(it.src){yw.hidden=true;try{S.ytp&&S.ytp.pauseVideo&&S.ytp.pauseVideo()}catch(e){}v.hidden=false;v.loop=l.length===1;v.src=it.src;v.play().catch(()=>{});return}
  v.pause();v.removeAttribute('src');v.hidden=true;yw.hidden=false;const gen=S.vGen=(S.vGen||0)+1;
  loadYT().then(()=>{S.ytDown=0;if(gen!==S.vGen)return;
-  if(S.ytp&&S.ytp.loadVideoById){S.ytp.mute();S.ytp.loadVideoById(it.yt);return}
+  if(S.ytp&&S.ytp.loadVideoById){S.ytp.mute();S.ytp.loadVideoById(it.yt);setTimeout(ytVol,600);return}
   S.ytp=new YT.Player('yt',{width:'100%',height:'100%',videoId:it.yt,playerVars:{autoplay:1,mute:1,controls:0,disablekb:1,fs:0,rel:0,iv_load_policy:3,playsinline:1,origin:location.origin},
-   events:{onReady:e=>{e.target.mute();e.target.playVideo()},onStateChange:e=>{if(e.data===0)vNext()},onError:()=>{vMsg('이 유튜브 영상은 재생할 수 없습니다 (퍼가기 금지 또는 삭제)');S.vRetry=setTimeout(()=>{if((S.vlist||[]).length>1)vNext();else vMsg('이 유튜브 영상은 재생할 수 없습니다 (퍼가기 금지 또는 삭제)')},4000)}}})})
+   events:{onReady:e=>{e.target.mute();e.target.playVideo();setTimeout(ytVol,600)},onStateChange:e=>{if(e.data===0)vNext()},onError:()=>{vMsg('이 유튜브 영상은 재생할 수 없습니다 (퍼가기 금지 또는 삭제)');S.vRetry=setTimeout(()=>{if((S.vlist||[]).length>1)vNext();else vMsg('이 유튜브 영상은 재생할 수 없습니다 (퍼가기 금지 또는 삭제)')},4000)}}})})
  .catch(()=>{S.ytDown=NOW();vMsg('유튜브에 연결할 수 없습니다 (태블릿 인터넷 확인)');S.vRetry=setTimeout(()=>{if((S.vlist||[]).length>1)vNext();else vPlay()},l.length>1?3000:30000)})}
 function customerShell(){
  document.documentElement.classList.add('cx');
  app.innerHTML=`<div class="cust"><div class="cpanel" id="cpanel">${LEAF_TL}${LEAF_R}<header class="chead"><div class="cleft"><span id="cstore"></span><i class="csep"></i><span class="ctitle" id="ctitle"></span><span id="ctest"></span></div><button class="logo" data-act="logo" aria-label="매장 메뉴">${ICON.emblem}<span class="lname" id="lname"></span><span class="lorn"><i></i><b></b><i></i></span></button><div class="cright"><span id="conn" class="conn"></span><button class="hbtn call" data-act="call" id="callBtn">${ICON.person}<span>직원 호출</span></button><button class="hbtn" data-act="myorders">${ICON.list}<span>주문 내역</span></button></div></header>
  <div class="cbody"><nav class="cats" id="ccats" aria-label="메뉴 분류"></nav><section class="grid" id="cgrid"></section><aside class="cart" id="ccart"></aside></div></div>
- <div class="vid"><video id="vid" muted autoplay playsinline></video><div id="ytwrap" hidden><div id="yt"></div></div><div class="vempty" id="vempty">동영상이 등록되지 않았습니다</div></div></div><div class="closedov" id="closedov" hidden><div class="cbg" id="closedbg"></div><img id="closedimg" alt="영업 준비 중" hidden><div class="ctxt" id="closedtxt">영업 준비 중</div><button class="ctap" data-act="logo" aria-label="매장 메뉴"></button></div>`;
+ <div class="vid"><video id="vid" muted autoplay playsinline></video><div id="ytwrap" hidden><div id="yt"></div></div><div class="vempty" id="vempty">동영상이 등록되지 않았습니다</div><div class="volpop" id="volpop" hidden><button class="volm" data-act="volmute" id="volm" aria-label="소리 끄기/켜기"></button><input type="range" id="volr" min="0" max="100" step="5" aria-label="동영상 소리 크기"><b id="volv"></b></div><button class="volbtn" data-act="vol" id="volbtn" aria-label="동영상 소리 조절"></button></div></div><div class="closedov" id="closedov" hidden><div class="cbg" id="closedbg"></div><img id="closedimg" alt="영업 준비 중" hidden><div class="ctxt" id="closedtxt">영업 준비 중</div><button class="ctap" data-act="logo" aria-label="매장 메뉴"></button></div>`;
  const v=$('#vid');
+ v.addEventListener('loadedmetadata',()=>applyVol());loadVol();volUI();
  v.addEventListener('ended',()=>vNext());
  v.addEventListener('error',()=>{if(v.getAttribute('src'))setTimeout(vNext,3000)});
  customerParts();onlineUI();
@@ -778,7 +818,7 @@ function vSettings(){const c=S.config;const t=me()||{};
  <div class="catrow"><input id="ytUrl" placeholder="유튜브 링크 붙여넣기 (youtube.com/watch?v=… 또는 youtu.be/…)" style="flex:1 1 260px"><button class="btn ghost" data-act="ytadd">유튜브 추가</button></div>
  <span class="fine">유튜브는 주문용 태블릿이 인터넷에 연결되어 있어야 나옵니다. 영상 주인이 퍼가기를 막은 영상은 재생되지 않고 다음 영상으로 넘어가며, 영상에 따라 유튜브 광고가 나올 수 있습니다.</span>
  ${S.assetUsage?`<span class="fine">올린 파일 ${S.assetUsage.files}개 · ${MB(S.assetUsage.bytes)}${S.assetUsage.freeBytes!=null?' · 서버 디스크 남은 공간 '+(S.assetUsage.freeBytes/1073741824).toFixed(1)+'GB':''}</span>`:''}
- <span class="fine">mp4 또는 webm, 파일 하나당 최대 2GB. 여러 개를 올리면 순서대로 이어 재생하고, 여러 파일을 한 번에 골라도 됩니다. 소리 없이 재생됩니다 (소리 필요 여부 ${NEED}).</span>
+ <span class="fine">mp4 또는 webm, 파일 하나당 최대 2GB. 여러 개를 올리면 순서대로 이어 재생하고, 여러 파일을 한 번에 골라도 됩니다. 처음에는 소리 없이 재생되고, 주문용 태블릿 동영상 오른쪽 아래 스피커 버튼으로 소리를 켜고 크기를 조절할 수 있습니다 (태블릿마다 따로 기억).</span>
  <label class="form"><span>동영상 영역 높이: 화면의 <b id="vpv">${Number(c.videoPct)||40}</b>% (주문 6 : 동영상 4 = 40%)</span><input type="range" id="vidPct" min="15" max="60" value="${Number(c.videoPct)||40}"></label></div>
  <div class="panel"><h3>영업 준비 중 화면</h3><span class="fine">위쪽 '영업 종료'를 누르면 주문용 태블릿 6대에 이 그림이 전체 화면으로 나오고 주문이 막힙니다. '영업 시작'을 누르면 다시 주문 화면으로 돌아갑니다.</span>${closedSrc()?`<img src="${esc(closedSrc())}" alt="준비 중 화면" style="width:100%;max-height:220px;object-fit:contain;border-radius:12px;background:#0d1a14">`:'<span class="fine">그림이 없으면 "영업 준비 중" 글씨만 나옵니다.</span>'}<div class="catrow">${S.assets?'<label class="btn ghost">그림 바꾸기<input type="file" accept="image/*" data-up="closedimg" hidden></label>':''}${S.config.closedImg&&window.TOD_API?'<button class="btn ghost" data-act="closedimgreset">기본 그림으로</button>':''}</div></div>
  <div class="panel vpanel"><h3>음성 안내 (주문받는 태블릿)</h3>${(()=>{const v=vcfg(),ko=koVoice();return `
@@ -858,6 +898,8 @@ async function act(a,d,b){const c=S.mctx;
  case 'vsave':{const nv={...vcfg(),...readVoiceForm()};let ok=await saveConfig({voice:nv});const ins=[...document.querySelectorAll('[data-vname]')];for(const el of ins){const t=S.tablets.find(x=>x.id===el.dataset.vname);const val=el.value.trim();if(t&&(t.voiceName||'')!==val)ok=(await w('tablets/'+t.id,r=>r.update({voiceName:val})))&&ok}if(ok)toast('음성 안내를 저장했습니다','ok');break}
  case 'storeopen':{const o=isOpen();if(o&&!armed(b))return;const ok=await saveConfig(o?{open:false,closedAt:Date.now()}:{open:true,openedAt:Date.now()});if(ok)toast(o?'영업을 종료했습니다. 주문용 태블릿에 준비 중 화면이 나옵니다':'영업을 시작했습니다. 주문을 받습니다','ok');delete b.dataset.armed;openUI();break}
  case 'closedimgreset':await saveConfig({closedImg:undefined});closedUI();counterTab();break;
+ case 'vol':{const p=$('#volpop');const show=p&&p.hidden;if(show&&S.vol.m){S.vol.m=false;if(!S.vol.v)S.vol.v=50;S.volBlocked=false;applyVol();saveVol()}volPop(show);break}
+ case 'volmute':S.vol.m=!S.vol.m;if(!S.vol.m&&!S.vol.v)S.vol.v=50;S.volBlocked=false;applyVol();saveVol();volPop(true);break;
  case 'morder':S.mOrder=!S.mOrder;counterTab();break;
  case 'mup':case 'mdn':{const m=menuById(d.id);if(!m)return;const g=catOrder(m.cat).filter(x=>gk(x)===gk(m));moveTo(m.id,g.findIndex(x=>x.id===m.id)+1+(a==='mup'?-1:1));break}
  case 'msold':{const m=menuById(d.id);if(m)await w('menu/'+m.id,r=>r.update({soldOut:!m.soldOut}));break}
