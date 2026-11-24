@@ -153,6 +153,15 @@ td.r,th.r{text-align:right;white-space:nowrap}
 .mrow{display:grid;grid-template-columns:56px minmax(0,1fr) auto;gap:12px;align-items:center;padding:10px;border-bottom:1px solid var(--line)}
 .mrow img,.mrow .ph{width:56px;height:56px;border-radius:10px;object-fit:cover;background:var(--turf2);display:grid;place-items:center;font-weight:800;color:var(--turf)}
 .mrow .acts{display:flex;flex-wrap:wrap;gap:6px;justify-content:flex-end}
+.mrow.ord{grid-template-columns:44px 48px minmax(0,1fr) auto;gap:10px;background:#fff}
+.mrow.ord img,.mrow.ord .ph{width:48px;height:48px}
+.grip{touch-action:none;user-select:none;-webkit-user-select:none;cursor:grab;display:grid;place-items:center;width:44px;height:48px;border-radius:10px;background:var(--turf2);color:var(--turf);font-size:26px;font-weight:800}
+.mrow.drag{position:relative;z-index:5;box-shadow:0 8px 24px rgba(0,0,0,.22);border-radius:12px;outline:2px solid var(--turf)}
+.mrow.drag .grip{cursor:grabbing;background:var(--turf);color:#fff}
+.ordno{width:58px;min-height:40px;text-align:center;font-weight:800;font-size:17px;padding:4px}
+.ordhelp{background:var(--turf2);border-radius:12px;padding:10px 14px;margin-bottom:12px;font-weight:600}
+.mrow.ord .acts{flex-wrap:nowrap}
+@media (max-width:640px){.mrow.ord{grid-template-columns:40px 40px minmax(0,1fr) auto;gap:8px;padding:8px 6px}.mrow.ord img,.mrow.ord .ph{width:40px;height:40px}.grip{width:40px;height:44px}.ordno{width:44px;font-size:16px}.mrow.ord .acts{gap:4px}.mrow.ord .acts .btn{padding:0 9px;min-width:34px}.mrow.ord b{font-size:15px}}
 .catrow{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
 .catrow .tag{font-size:14px;padding:6px 10px;display:inline-flex;gap:4px;align-items:center}
 .catrow .tag button{min-height:28px;padding:0 4px;font-weight:800}
@@ -275,6 +284,29 @@ const cats=()=>{const c=[...(S.config.categories||[])];S.menu.forEach(m=>{if(m.c
 const subsOf=c=>[...(((S.config.subcats||{})[c])||[])];
 const subsAll=c=>{const s=subsOf(c);S.menu.forEach(m=>{if(m.cat===c&&m.sub&&!s.includes(m.sub))s.push(m.sub)});return s};
 const menuById=id=>S.menu.find(m=>m.id===id);
+const gk=m=>{const ss=subsAll(m.cat||'');return (m.cat||'')+'\u0001'+(ss.includes(m.sub)?m.sub:'\u0002')};
+function catOrder(c){const ms=S.menu.filter(m=>(m.cat||'')===(c||''));const ss=subsAll(c||'').filter(sb=>ms.some(m=>m.sub===sb));return ss.flatMap(sb=>ms.filter(m=>m.sub===sb)).concat(ms.filter(m=>!ss.includes(m.sub)))}
+async function saveOrder(ids){const ch=[];ids.forEach((id,i)=>{const m=menuById(id),v=(i+1)*10;if(m&&m.sort!==v){m.sort=v;ch.push(m)}});
+ S.menu.sort((a,b)=>(a.sort||0)-(b.sort||0)||String(a.name).localeCompare(String(b.name)));counterTab();if(!ch.length)return;
+ let ok=0;for(let i=0;i<ch.length;i+=6){const r=await Promise.all(ch.slice(i,i+6).map(m=>w('menu/'+m.id,x=>x.update({sort:m.sort}))));ok+=r.filter(Boolean).length}
+ toast(ok===ch.length?'순서를 저장했습니다':'일부 저장 실패 — 다시 해 주세요',ok===ch.length?'':'bad')}
+function groupIds(m,gids){const all=catOrder(m.cat);let k=0;return all.map(x=>gk(x)===gk(m)?gids[k++]:x.id)}
+function moveTo(id,pos){const m=menuById(id);if(!m)return;const g=catOrder(m.cat).filter(x=>gk(x)===gk(m)).map(x=>x.id);g.splice(g.indexOf(id),1);pos=Math.max(1,Math.min(g.length+1,Math.round(pos)||1));g.splice(pos-1,0,id);saveOrder(groupIds(m,g))}
+(function(){let D=null,tm=null;
+ const scroller=()=>{let e=$('#kmain');while(e&&e!==document.body){const o=getComputedStyle(e).overflowY;if((o==='auto'||o==='scroll')&&e.scrollHeight>e.clientHeight)return e;e=e.parentElement}return document.scrollingElement||document.documentElement};
+ function place(){const rows=[...D.grp.children].filter(r=>r.classList.contains('mrow'));const others=rows.filter(r=>r!==D.row);let t=0;for(const r of others){const b=r.getBoundingClientRect();if(D.y>b.top+b.height/2)t++;else break}
+  if(t===rows.indexOf(D.row))return;others.slice(0,t).forEach(r=>D.grp.insertBefore(r,D.row));others.slice(t).reverse().forEach(r=>D.grp.insertBefore(r,D.row.nextSibling))}
+ document.addEventListener('pointerdown',e=>{const g=e.target.closest&&e.target.closest('[data-grip]');if(!g)return;const row=g.closest('.mrow'),grp=row&&row.parentElement;if(!grp)return;e.preventDefault();
+  D={row,grp,y:e.clientY,sc:scroller()};S.dragging=true;row.classList.add('drag');try{g.setPointerCapture(e.pointerId)}catch(_){}
+  tm=setInterval(()=>{if(!D)return;const v=D.y<90?-16:D.y>innerHeight-90?16:0;if(v){D.sc.scrollBy(0,v);place()}},30)});
+ document.addEventListener('pointermove',e=>{if(!D)return;e.preventDefault();D.y=e.clientY;place()},{passive:false});
+ document.addEventListener('touchmove',e=>{if(D)e.preventDefault()},{passive:false});
+ const end=()=>{if(!D)return;clearInterval(tm);const {row,grp}=D;D=null;S.dragging=false;row.classList.remove('drag');
+  const ids=[...grp.children].filter(r=>r.classList.contains('mrow')).map(r=>r.dataset.mid);const m=menuById(ids[0]);if(!m){counterTab();return}saveOrder(groupIds(m,ids))};
+ document.addEventListener('pointerup',end);document.addEventListener('pointercancel',end);
+ document.addEventListener('change',e=>{const el=e.target;if(el&&el.dataset&&el.dataset.ord){const v=+el.value;el.blur();if(v>0)moveTo(el.dataset.ord,v);else counterTab()}});
+ document.addEventListener('keydown',e=>{const el=e.target;if(e.key==='Enter'&&el&&el.dataset&&el.dataset.ord)el.blur()})})();
+
 const okYt=v=>typeof v==='string'&&/^[A-Za-z0-9_-]{11}$/.test(v);
 function ytId(u){u=String(u||'').trim();if(okYt(u))return u;try{const x=new URL(u);const h=x.hostname.replace(/^www\.|^m\./,'');if(h==='youtu.be')return okYt(x.pathname.slice(1,12))?x.pathname.slice(1,12):null;if(h.endsWith('youtube.com')||h.endsWith('youtube-nocookie.com')){const v=x.searchParams.get('v');if(okYt(v))return v;const m=/^\/(?:shorts|embed|live|v)\/([A-Za-z0-9_-]{11})/.exec(x.pathname);if(m)return m[1]}}catch(e){}return null}
 const vids=()=>Array.isArray(S.config.videos)?S.config.videos.filter(v=>v&&(okId(v.id)||okYt(v.yt))):(okId(S.config.videoId)?[{id:S.config.videoId,name:S.config.videoName||'',size:S.config.videoSize||0}]:[]);
@@ -485,7 +517,7 @@ function counterTab(){
  const k=$('#kmain');if(!k)return;
  const nNew=S.orders.filter(o=>o.status==='new'&&(S.showTest||!o.test)).length;const nDec=S.decisions.filter(d=>d.status!=='done').length;const nInc=S.incidents.filter(i=>!i.endAt).length;
  $('#ktabs').innerHTML=TABS.map(([id,l])=>`<button class="${S.tab===id?'on':''}" data-act="tab" data-t="${id}">${l}${id==='orders'&&nNew?`<span class="n">${nNew}</span>`:''}${id==='check'&&nDec?`<span class="n w">${nDec}</span>`:''}${id==='incidents'&&nInc?`<span class="n w">${nInc}</span>`:''}</button>`).join('');
- if(inEdit()){S.pending=true;return}
+ if(inEdit()||S.dragging){S.pending=true;return}
  k.innerHTML=({orders:vOrders,settle:vSettle,menu:vMenu,tablets:vTablets,sales:vSales,incidents:vIncidents,check:vCheck,settings:vSettings})[S.tab]();
  if(S.mctx&&S.mctx.type==='pay')payModal();
  renderCalls();
@@ -531,13 +563,17 @@ async function updOrder(o,patch,what){const now=NOW();return w('orders/'+o.id,r=
 /* 메뉴 관리 */
 function vMenu(){
  const cs=cats();const uncat=S.menu.filter(m=>!m.cat);
- const row=m=>`<div class="mrow">${blob(m.img)?`<img src="${blob(m.img)}" alt="">`:`<span class="ph">${esc(String(m.name||'?').slice(0,1))}</span>`}<div><b>${esc(m.name)}</b> ${m.soldOut?'<span class="tag off">품절</span>':''}${m.hidden?' <span class="tag">숨김</span>':''}<div class="fine">${won(m.price)}${(m.groups||[]).length?' · 옵션 '+m.groups.length+'개':''}</div></div><div class="acts"><button class="btn sm ${m.soldOut?'':'ghost'}" data-act="msold" data-id="${esc(m.id)}">${m.soldOut?'품절 해제':'품절'}</button><button class="btn sm ghost" data-act="mhide" data-id="${esc(m.id)}">${m.hidden?'보이기':'숨기기'}</button><button class="btn sm ghost" data-act="medit" data-id="${esc(m.id)}">수정</button><button class="btn sm ghost" data-act="mdel" data-id="${esc(m.id)}">삭제</button></div></div>`;
- return `<div class="bar"><h2>메뉴 관리</h2>${S.assets?'<label class="btn ghost">메뉴 가져오기<input type="file" accept=".json,application/json" data-up="menuimport" hidden></label>':''}<button class="btn" data-act="mnew">메뉴 추가</button></div>
- <div class="panel" style="margin-bottom:16px"><h3>분류 <span class="fine">큰 분류 왼쪽, 하위 분류 오른쪽 · ‹ › 로 순서 변경</span></h3>${(S.config.categories||[]).map((c,i)=>`<div class="catline"><span class="tag top">${esc(c)}<button data-act="catup" data-i="${i}" aria-label="앞으로">‹</button><button data-act="catdn" data-i="${i}" aria-label="뒤로">›</button><button data-act="catdel" data-i="${i}" aria-label="삭제">×</button></span><span class="fine">하위:</span>${subsOf(c).map((sb,j)=>`<span class="tag">${esc(sb)}<button data-act="subup" data-i="${i}" data-j="${j}" aria-label="앞으로">‹</button><button data-act="subdn" data-i="${i}" data-j="${j}" aria-label="뒤로">›</button><button data-act="subdel" data-i="${i}" data-j="${j}" aria-label="삭제">×</button></span>`).join('')}<input id="newSub-${i}" placeholder="하위 분류 이름" style="max-width:170px;min-height:38px"><button class="btn sm ghost" data-act="subadd" data-i="${i}">하위 추가</button></div>`).join('')||'<span class="fine">분류가 없습니다</span>'}
- <div class="catrow" style="margin-top:8px"><input id="newCat" placeholder="새 큰 분류 이름" style="max-width:260px"><button class="btn ghost" data-act="catadd">큰 분류 추가</button></div></div>
+ const rowN=m=>`<div class="mrow">${blob(m.img)?`<img src="${blob(m.img)}" alt="">`:`<span class="ph">${esc(String(m.name||'?').slice(0,1))}</span>`}<div><b>${esc(m.name)}</b> ${m.soldOut?'<span class="tag off">품절</span>':''}${m.hidden?' <span class="tag">숨김</span>':''}<div class="fine">${won(m.price)}${(m.groups||[]).length?' · 옵션 '+m.groups.length+'개':''}</div></div><div class="acts"><button class="btn sm ${m.soldOut?'':'ghost'}" data-act="msold" data-id="${esc(m.id)}">${m.soldOut?'품절 해제':'품절'}</button><button class="btn sm ghost" data-act="mhide" data-id="${esc(m.id)}">${m.hidden?'보이기':'숨기기'}</button><button class="btn sm ghost" data-act="medit" data-id="${esc(m.id)}">수정</button><button class="btn sm ghost" data-act="mdel" data-id="${esc(m.id)}">삭제</button></div></div>`;
+ const rowO=(m,i)=>`<div class="mrow ord" data-mid="${esc(m.id)}"><span class="grip" data-grip role="button" aria-label="끌어서 순서 바꾸기">≡</span>${blob(m.img)?`<img src="${blob(m.img)}" alt="">`:`<span class="ph">${esc(String(m.name||'?').slice(0,1))}</span>`}<div><b>${esc(m.name)}</b>${m.hidden?' <span class="tag">숨김</span>':''}<div class="fine">${won(m.price)}</div></div><div class="acts"><input class="ordno" data-ord="${esc(m.id)}" inputmode="numeric" value="${i+1}" aria-label="순서 번호"><button class="btn sm ghost" data-act="mup" data-id="${esc(m.id)}" aria-label="위로">▲</button><button class="btn sm ghost" data-act="mdn" data-id="${esc(m.id)}" aria-label="아래로">▼</button></div></div>`;
+ const row=(m,i)=>S.mOrder?rowO(m,i):rowN(m);
+ const grp=list=>`<div class="mgrp">${list.map(row).join('')}</div>`;
+ return `<div class="bar"><h2>메뉴 관리</h2>${S.assets?'<label class="btn ghost">메뉴 가져오기<input type="file" accept=".json,application/json" data-up="menuimport" hidden></label>':''}<button class="btn ${S.mOrder?'':'ghost'}" data-act="morder">${S.mOrder?'순서 편집 끝':'순서 편집'}</button><button class="btn" data-act="mnew">메뉴 추가</button></div>
+ ${S.mOrder?'<div class="ordhelp">≡ 손잡이를 꾹 눌러 위아래로 끌거나, 번호를 바꾸거나, ▲▼를 누르세요. 같은 분류 안에서 움직이며 바로 저장되어 모든 태블릿에 반영됩니다.</div>':''}
+ ${S.mOrder?'':`<div class="panel" style="margin-bottom:16px"><h3>분류 <span class="fine">큰 분류 왼쪽, 하위 분류 오른쪽 · ‹ › 로 순서 변경</span></h3>${(S.config.categories||[]).map((c,i)=>`<div class="catline"><span class="tag top">${esc(c)}<button data-act="catup" data-i="${i}" aria-label="앞으로">‹</button><button data-act="catdn" data-i="${i}" aria-label="뒤로">›</button><button data-act="catdel" data-i="${i}" aria-label="삭제">×</button></span><span class="fine">하위:</span>${subsOf(c).map((sb,j)=>`<span class="tag">${esc(sb)}<button data-act="subup" data-i="${i}" data-j="${j}" aria-label="앞으로">‹</button><button data-act="subdn" data-i="${i}" data-j="${j}" aria-label="뒤로">›</button><button data-act="subdel" data-i="${i}" data-j="${j}" aria-label="삭제">×</button></span>`).join('')}<input id="newSub-${i}" placeholder="하위 분류 이름" style="max-width:170px;min-height:38px"><button class="btn sm ghost" data-act="subadd" data-i="${i}">하위 추가</button></div>`).join('')||'<span class="fine">분류가 없습니다</span>'}
+ <div class="catrow" style="margin-top:8px"><input id="newCat" placeholder="새 큰 분류 이름" style="max-width:260px"><button class="btn ghost" data-act="catadd">큰 분류 추가</button></div></div>`}
  ${S.menu.length?'':`<div class="panel"><b>등록된 메뉴가 없습니다.</b><span class="fine">메뉴·옵션·가격 ${NEED} — 실제 메뉴판을 기준으로 입력해 주세요. 여기서 바꾸면 모든 주문용 태블릿에 바로 반영됩니다.</span></div>`}
- ${cs.map(c=>{const ms=S.menu.filter(m=>m.cat===c);if(!ms.length)return '';const ss=subsAll(c).filter(sb=>ms.some(m=>m.sub===sb));const rest=ms.filter(m=>!ss.includes(m.sub));return `<div class="panel" style="margin-bottom:12px;padding:6px"><h3 style="padding:10px">${esc(c)} <span class="fine">${ms.length}</span></h3>${ss.length?ss.map(sb=>`<div class="fine" style="padding:8px 10px 0;font-weight:800;color:var(--turf)">${esc(sb)}</div>`+ms.filter(m=>m.sub===sb).map(row).join('')).join('')+(rest.length?'<div class="fine" style="padding:8px 10px 0;font-weight:800">하위 분류 없음</div>'+rest.map(row).join(''):''):ms.map(row).join('')}</div>`}).join('')}
- ${uncat.length?`<div class="panel"><h3>분류 없음</h3>${uncat.map(row).join('')}</div>`:''}`}
+ ${cs.map(c=>{const ms=S.menu.filter(m=>m.cat===c);if(!ms.length)return '';const ss=subsAll(c).filter(sb=>ms.some(m=>m.sub===sb));const rest=ms.filter(m=>!ss.includes(m.sub));return `<div class="panel" style="margin-bottom:12px;padding:6px"><h3 style="padding:10px">${esc(c)} <span class="fine">${ms.length}</span></h3>${ss.length?ss.map(sb=>`<div class="fine" style="padding:8px 10px 0;font-weight:800;color:var(--turf)">${esc(sb)}</div>`+grp(ms.filter(m=>m.sub===sb))).join('')+(rest.length?'<div class="fine" style="padding:8px 10px 0;font-weight:800">하위 분류 없음</div>'+grp(rest):''):grp(ms)}</div>`}).join('')}
+ ${uncat.length?`<div class="panel"><h3>분류 없음</h3>${grp(uncat)}</div>`:''}`}
 function menuModal(){const c=S.mctx,m=c.m;
  openModal(`<h2>${c.id?'메뉴 수정':'메뉴 추가'}</h2><div class="form">
  <label>이름<input data-f="name" value="${esc(m.name)}"></label>
@@ -682,6 +718,8 @@ async function act(a,d,b){const c=S.mctx;
  case 'payundo':{const o=S.orders.find(x=>x.id===d.id);if(o&&armed(b))await updOrder(o,{pay:'unpaid',payMethod:'',paidAt:null},'결제 기록 취소');break}
  case 'mnew':S.mctx={type:'menu',id:null,m:{name:'',cat:S.config.categories&&S.config.categories[0]||'',sub:'',price:0,sort:0,desc:'',groups:[],soldOut:false,hidden:false}};menuModal();break;
  case 'medit':{const m=menuById(d.id);if(!m)return;const cp=JSON.parse(JSON.stringify(m));delete cp.id;S.mctx={type:'menu',id:m.id,m:cp};menuModal();break}
+ case 'morder':S.mOrder=!S.mOrder;counterTab();break;
+ case 'mup':case 'mdn':{const m=menuById(d.id);if(!m)return;const g=catOrder(m.cat).filter(x=>gk(x)===gk(m));moveTo(m.id,g.findIndex(x=>x.id===m.id)+1+(a==='mup'?-1:1));break}
  case 'msold':{const m=menuById(d.id);if(m)await w('menu/'+m.id,r=>r.update({soldOut:!m.soldOut}));break}
  case 'mhide':{const m=menuById(d.id);if(m)await w('menu/'+m.id,r=>r.update({hidden:!m.hidden}));break}
  case 'mdel':if(armed(b))await w('menu/'+d.id,r=>r.delete());break;

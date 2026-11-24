@@ -1,10 +1,10 @@
 {
-  "version": "1.1.3",
-  "files": [
-    "server.js",
-    "public/index.html",
-    "version.json",
-    "README.md"
-  ],
-  "notes": "메뉴 관리에 \"메뉴 가져오기\"(파일로 한꺼번에 입력) 추가, 메뉴가 많을 때 카드가 눌려 보이던 문제 수정."
+ "version": "1.1.4",
+ "files": [
+  "server.js",
+  "public/index.html",
+  "version.json",
+  "README.md"
+ ],
+ "notes": "메뉴 관리에 \"순서 편집\" 추가 — 손잡이를 끌어서(스마트폰 터치 가능), 번호 입력, ▲▼로 메뉴 순서 변경."
 }
