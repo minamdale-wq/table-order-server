@@ -53,7 +53,7 @@ input[type=range]{padding:0;border:0;accent-color:var(--turf)}
 .subs button.on{background:var(--turf);border-color:var(--turf);color:#fff}
 .gsec{grid-column:1/-1;margin:.5em 0 -.3em;font-size:1.15em;display:flex;align-items:center;gap:.6em}.gsec::after{content:'';flex:1;border-top:2px solid var(--line)}
 .catline{display:flex;flex-wrap:wrap;gap:8px;align-items:center;padding:10px 0;border-bottom:1px dashed var(--line)}.catline .tag.top{font-size:15px;font-weight:800;background:var(--turf);color:#fff}.catline .tag.top button{color:#fff}
-.grid{overflow:auto;padding:1em;display:grid;grid-template-columns:repeat(auto-fill,minmax(clamp(170px,14vw,300px),1fr));gap:1em;align-content:start}
+.grid{overflow:auto;padding:1em;display:grid;grid-template-columns:repeat(auto-fill,minmax(clamp(170px,14vw,300px),1fr));grid-auto-rows:max-content;gap:1em;align-content:start}
 .mcard{position:relative;display:flex;flex-direction:column;text-align:left;background:var(--card);border:1px solid var(--line);border-radius:16px;overflow:hidden;min-height:44px}
 .mcard img,.mcard .ph{width:100%;aspect-ratio:4/3;object-fit:cover;display:block;background:var(--turf2)}
 .mcard .ph{display:grid;place-items:center;font-size:2.4em;font-weight:800;color:var(--turf)}
@@ -532,7 +532,7 @@ async function updOrder(o,patch,what){const now=NOW();return w('orders/'+o.id,r=
 function vMenu(){
  const cs=cats();const uncat=S.menu.filter(m=>!m.cat);
  const row=m=>`<div class="mrow">${blob(m.img)?`<img src="${blob(m.img)}" alt="">`:`<span class="ph">${esc(String(m.name||'?').slice(0,1))}</span>`}<div><b>${esc(m.name)}</b> ${m.soldOut?'<span class="tag off">품절</span>':''}${m.hidden?' <span class="tag">숨김</span>':''}<div class="fine">${won(m.price)}${(m.groups||[]).length?' · 옵션 '+m.groups.length+'개':''}</div></div><div class="acts"><button class="btn sm ${m.soldOut?'':'ghost'}" data-act="msold" data-id="${esc(m.id)}">${m.soldOut?'품절 해제':'품절'}</button><button class="btn sm ghost" data-act="mhide" data-id="${esc(m.id)}">${m.hidden?'보이기':'숨기기'}</button><button class="btn sm ghost" data-act="medit" data-id="${esc(m.id)}">수정</button><button class="btn sm ghost" data-act="mdel" data-id="${esc(m.id)}">삭제</button></div></div>`;
- return `<div class="bar"><h2>메뉴 관리</h2><button class="btn" data-act="mnew">메뉴 추가</button></div>
+ return `<div class="bar"><h2>메뉴 관리</h2>${S.assets?'<label class="btn ghost">메뉴 가져오기<input type="file" accept=".json,application/json" data-up="menuimport" hidden></label>':''}<button class="btn" data-act="mnew">메뉴 추가</button></div>
  <div class="panel" style="margin-bottom:16px"><h3>분류 <span class="fine">큰 분류 왼쪽, 하위 분류 오른쪽 · ‹ › 로 순서 변경</span></h3>${(S.config.categories||[]).map((c,i)=>`<div class="catline"><span class="tag top">${esc(c)}<button data-act="catup" data-i="${i}" aria-label="앞으로">‹</button><button data-act="catdn" data-i="${i}" aria-label="뒤로">›</button><button data-act="catdel" data-i="${i}" aria-label="삭제">×</button></span><span class="fine">하위:</span>${subsOf(c).map((sb,j)=>`<span class="tag">${esc(sb)}<button data-act="subup" data-i="${i}" data-j="${j}" aria-label="앞으로">‹</button><button data-act="subdn" data-i="${i}" data-j="${j}" aria-label="뒤로">›</button><button data-act="subdel" data-i="${i}" data-j="${j}" aria-label="삭제">×</button></span>`).join('')}<input id="newSub-${i}" placeholder="하위 분류 이름" style="max-width:170px;min-height:38px"><button class="btn sm ghost" data-act="subadd" data-i="${i}">하위 추가</button></div>`).join('')||'<span class="fine">분류가 없습니다</span>'}
  <div class="catrow" style="margin-top:8px"><input id="newCat" placeholder="새 큰 분류 이름" style="max-width:260px"><button class="btn ghost" data-act="catadd">큰 분류 추가</button></div></div>
  ${S.menu.length?'':`<div class="panel"><b>등록된 메뉴가 없습니다.</b><span class="fine">메뉴·옵션·가격 ${NEED} — 실제 메뉴판을 기준으로 입력해 주세요. 여기서 바꾸면 모든 주문용 태블릿에 바로 반영됩니다.</span></div>`}
@@ -710,6 +710,20 @@ async function act(a,d,b){const c=S.mctx;
  case 'updcheck':S.upd={loading:true};counterTab();try{S.upd=await window.TOD_API('/api/update/check')}catch(e){S.upd={err:e.code==='update_unreachable'?'업데이트 서버에 연결할 수 없습니다. 서버 컴퓨터의 인터넷 연결을 확인해 주세요.':(e.message||'확인하지 못했습니다')}}counterTab();break;
  case 'updgo':{if(!armed(b))return;b.disabled=true;b.textContent='업데이트 중…';try{const r=await window.TOD_API('/api/update/apply',{});S.upd=null;toast(r.upToDate?'이미 최신 버전입니다':r.restart&&!r.supervised?'업데이트했습니다. 서버 창을 닫았다가 다시 켜 주세요':'버전 '+r.version+'(으)로 업데이트했습니다. 화면이 곧 새로고침됩니다','ok');loadInfo()}catch(e){toast(e.message||'업데이트하지 못했습니다','bad');b.disabled=false;b.textContent='지금 업데이트'}break}
  case 'updback':{if(!armed(b))return;try{const r=await window.TOD_API('/api/update/rollback',{});S.upd=null;toast('버전 '+r.version+'(으)로 되돌렸습니다'+(r.restart&&!r.supervised?'. 서버 창을 다시 켜 주세요':''),'ok');loadInfo()}catch(e){toast(e.message||'되돌리지 못했습니다','bad')}break}
+ case 'importgo':{const {d,items}=c;S.mctx={type:'importing',lock:true};openModal('<h2>가져오는 중…</h2><div class="notice" id="impProg">준비 중</div>');
+  const cats0=[...(S.config.categories||[])];(d.categories||[]).forEach(x=>{if(typeof x==='string'&&!cats0.includes(x))cats0.push(x)});items.forEach(it=>{if(!cats0.includes(it.cat))cats0.push(it.cat)});
+  const sc={...(S.config.subcats||{})};Object.entries(d.subcats||{}).forEach(([k,v])=>{const cur=[...(sc[k]||[])];(Array.isArray(v)?v:[]).forEach(x=>{if(typeof x==='string'&&!cur.includes(x))cur.push(x)});sc[k]=cur});
+  await saveConfig({categories:cats0,subcats:sc});
+  let ok=0,fail=0;const base=Date.now();
+  for(let i=0;i<items.length;i++){const it=items[i];const pr=$('#impProg');if(pr)pr.textContent=(i+1)+' / '+items.length+' · '+it.name;
+   try{let img;if(typeof it.image==='string'&&it.image.startsWith('data:image/')){const b=await (await fetch(it.image)).blob();const r=await S.assets.upload(b,{type:b.type||'image/jpeg'});img=r.id}
+    const ex=S.menu.find(m=>m.cat===it.cat&&m.name===it.name);
+    const fields={name:it.name.trim(),cat:it.cat,sub:typeof it.sub==='string'?it.sub:'',price:Math.max(0,Number(it.price)||0),desc:typeof it.desc==='string'?it.desc:'',sort:Number(it.sort)||0,updatedAt:NOW()};
+    if(img)fields.img=img;if(typeof it.hidden==='boolean')fields.hidden=it.hidden;
+    if(ex)await S.db.doc('menu/'+ex.id).update(fields);
+    else await S.db.doc('menu/m'+(base+i).toString(36)).set({groups:[],soldOut:false,hidden:false,...fields});ok++}
+   catch(x){fail++}}
+  S.mctx=null;closeModal();toast('메뉴 '+ok+'개를 가져왔습니다'+(fail?' · 실패 '+fail+'개':''),fail?'bad':'ok');break}
  case 'csvdl':dl('주문내역-'+(S.salesMode==='day'?S.salesDate:S.salesFrom+'_'+S.salesTo)+'.csv','\uFEFF'+csvText(),'text/csv;charset=utf-8');break;
  case 'backup':{try{const p=LS.get('tod.admin')||'';const r=await fetch('/api/backup',{headers:{'X-Admin-Pin':p}});if(!r.ok)throw 0;dl('테이블오더-백업-'+dkey()+'.json',await r.blob())}catch(e){toast('백업을 내려받지 못했습니다','bad')}break}
  case 'pinchange':{const p=($('#newPin').value||'').trim();if(!/^\d{4,6}$/.test(p))return toast('숫자 4~6자리로 넣어 주세요','bad');if(!armed(b))return;try{await window.TOD_API('/api/auth/change',{pin:p});LS.set('tod.admin',p);$('#newPin').value='';toast('관리 PIN을 바꿨습니다. 다른 관리 기기는 새 PIN을 다시 입력해야 합니다','ok')}catch(e){toast('바꾸지 못했습니다','bad')}break}
@@ -745,6 +759,12 @@ function bind(e){const el=e.target,c=S.mctx;
 document.addEventListener('input',bind);
 document.addEventListener('change',e=>{bind(e);upload(e)});
 async function upload(e){const el=e.target;if(!el.dataset||!el.dataset.up)return;
+ if(el.dataset.up==='menuimport'){const f=el.files&&el.files[0];el.value='';if(!f)return;let d;try{d=JSON.parse(await f.text())}catch(x){return toast('메뉴 파일을 읽을 수 없습니다','bad')}
+  if(!d||d.format!=='table-order-menu'||!Array.isArray(d.items))return toast('테이블 오더 메뉴 파일이 아닙니다','bad');
+  const items=d.items.filter(it=>it&&typeof it.name==='string'&&it.name.trim()&&typeof it.cat==='string'&&it.cat.trim());
+  const upd=items.filter(it=>S.menu.some(m=>m.cat===it.cat&&m.name===it.name)).length;
+  S.mctx={type:'import',d,items};
+  openModal(`<h2>메뉴 가져오기</h2><div class="notice">${items.length}개 메뉴 · 새로 추가 ${items.length-upd}개 · 이미 있는 메뉴 ${upd}개(가격·설명·사진을 파일 내용으로 바꿈)</div><p class="fine">이미 있는 메뉴의 옵션과 품절 상태는 그대로 둡니다. 사진이 있는 메뉴는 사진도 함께 올립니다.</p><div class="mfoot"><button class="btn ghost" data-act="close">닫기</button><button class="btn" data-act="importgo">가져오기</button></div>`);return}
  if(el.dataset.up==='video'){const fs=[...(el.files||[])];el.value='';if(!fs.length)return;if(!S.assets)return toast('올리기 권한이 없습니다','bad');
   const LIM=2*1024**3;const big=fs.filter(f=>f.size>LIM);if(big.length)toast(big.map(f=>f.name).join(', ')+': 2GB가 넘어 건너뜁니다','bad');
   let n=0;for(const f of fs.filter(f=>f.size<=LIM)){const lab='올리는 중… ('+(n+1)+'/'+(fs.length-big.length)+') '+f.name;toast(lab);window.TOD_PROGRESS=r=>toast(lab+' · '+Math.round(r*100)+'%');
