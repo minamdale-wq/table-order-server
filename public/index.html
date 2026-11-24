@@ -181,6 +181,51 @@ html.cx .modal .qty button{border-color:var(--gold2);background:#fffdf8}html.cx 
  .cx .hbtn{min-height:46px;padding:.3em .95em}
 }
 @media (max-aspect-ratio:9/14){.cx .cbody{grid-template-columns:minmax(0,1fr) clamp(220px,36vw,420px)}.cx .grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+
+/* ===== 주문받는 태블릿 디자인 (고객 화면과 같은 크림·숲색·금색) ===== */
+html.kx{color-scheme:light;--bg:#f6efe4;--card:#fffdf8;--ink:#2b2620;--mute:#7c7366;--line:#e8dccb;--turf:#24503a;--turf2:#efe6d6;--gold:#b08b58;--gold2:#dcc7a3;--hot:#c8632d;--ok:#2f8a55;--bad:#c0392b;--warn:#a8741a}
+html.kx body{background:radial-gradient(120% 60% at 50% 0%,#fbf6ee 0%,#f5ecdf 55%,#efe3d1 100%) fixed;color:var(--ink)}
+.kx .khead{position:relative;overflow:hidden;background:linear-gradient(180deg,#fbf6ee,#f3e9da);color:var(--ink);padding:14px max(3vw,18px) 12px clamp(80px,9vw,150px);border-bottom:1px solid var(--gold2);box-shadow:0 1px 0 #fff inset}
+.kx .khead .leafdeco{position:absolute;left:-14px;top:-18px;width:clamp(90px,9vw,150px);opacity:.85;pointer-events:none}
+.kx .khead h1{display:flex;align-items:center;gap:.45em;font-size:clamp(20px,1.9vw,28px)}
+.kx .khead h1 .emb{width:1.6em;height:.9em;color:#8a6a3c;flex:none}
+.kx .khead .kname{font-family:"Noto Serif KR","Noto Serif CJK KR","Nanum Myeongjo",serif;font-weight:700;color:#3a3024;letter-spacing:-.01em;white-space:nowrap}
+.kx .khead h1 small{font-size:.6em;font-weight:700;color:var(--mute);padding-left:.7em;border-left:1px solid #cdbfa8;white-space:nowrap}
+.kx .khead .pill{background:#fffdf8;border:1px solid var(--gold2);color:#4a4134;font-weight:600}
+.kx .khead .btn{background:#fffdf8;color:var(--turf);border:1px solid var(--gold2);border-radius:999px;box-shadow:0 2px 6px #6b4e2412}
+.kx .khead .btn.open-on{background:#fffdf8!important;border-color:#e2b3a8!important;color:var(--bad)!important}
+.kx .khead .btn.open-off{background:linear-gradient(180deg,#2d5e45,#1f4632)!important;border-color:#1f4632!important;color:#fff!important}
+.kx .ktabs{background:#fbf6eeeb;backdrop-filter:blur(8px);border-bottom:1.5px solid var(--gold2);gap:6px;padding:10px max(3vw,18px)}
+.kx .ktabs button{display:inline-flex;align-items:center;gap:.4em;border-radius:999px;padding:8px 16px;color:#3a3328;font-weight:700}
+.kx .ktabs button svg{width:18px;height:18px;color:#7a6446}
+.kx .ktabs button.on{background:linear-gradient(180deg,#2d5e45,#1f4632);color:#fff;box-shadow:0 6px 14px -6px #1f463290}.kx .ktabs button.on svg{color:#fff}
+.kx .ktabs .n{background:var(--hot)}
+.kx main{padding-top:4px}
+.kx .bar h2,.kx .panel h3,.kx .col>h3{font-family:"Noto Serif KR","Noto Serif CJK KR",serif;color:#3a3024}
+.kx .btn{border-radius:999px;background:linear-gradient(180deg,#2d5e45,#1f4632);box-shadow:0 4px 10px -6px #1f463290}
+.kx .btn.ghost{background:#fffdf8;color:#3a3328;border:1.5px solid var(--gold2);box-shadow:0 1px 3px #6b4e2410}
+.kx .btn.bad{background:var(--bad)}
+.kx input,.kx select,.kx textarea{background:#fffdf8;border-color:#e3d6c2;border-radius:12px}
+.kx .panel,.kx .kpi{background:var(--card);border:1px solid #eadfcd;border-radius:18px;box-shadow:0 10px 24px -16px #5a3d1a40}.kx .panel{align-content:start}.kx .panel h3 .fine{font-family:"Gothic A1",system-ui,sans-serif}
+.kx .kpi.main{background:linear-gradient(160deg,#2d5e45,#1d4430);border:0}.kx .kpi.main span{color:#d8eadf}
+.kx .col{background:#efe5d4;border:1px solid #e6d8c2;border-radius:20px;padding:12px}
+.kx .ticket{border-radius:16px;border-top-width:5px;box-shadow:0 8px 18px -10px #5a3d1a40;border-left:1px solid #efe5d5;border-right:1px solid #efe5d5;border-bottom:1px solid #efe5d5}
+.kx .ticket.st-new{border-top-color:var(--hot);background:linear-gradient(180deg,#fff6ef,#fffdf8 40%)}
+.kx .ticket.st-accepted{border-top-color:var(--turf)}
+.kx .ticket footer{border-top-color:#e8dccb}
+.kx .tag{background:#efe6d6;color:#4a4134;border-radius:999px;padding:1px 9px}
+.kx .tag.unpaid{background:#fbe5d6;color:#a9481a}.kx .tag.paid,.kx .tag.on{background:#e1f0e6;color:var(--ok)}.kx .tag.off{background:#f8e0dc;color:var(--bad)}.kx .tag.test{background:#fbe7a8;color:#5a4300}
+.kx .notice{background:#f3ead9;border:1px solid #eadfcd}
+.kx table{background:var(--card);border:1px solid #eadfcd;border-radius:14px}.kx th{background:#f3ead9;color:#4a4134}
+.kx .calls{background:linear-gradient(90deg,#c8632d,#d9783e)}
+.kx .calls .callrow .btn{background:#fff;color:var(--hot)}
+.kx .mrow{border-bottom-color:#eadfcd}.kx .mrow img,.kx .mrow .ph{background:#f1e8da;color:#9a7746}
+.kx .grip{background:#efe6d6;color:#7a6446}.kx .mrow.drag .grip{background:var(--turf);color:#fff}
+.kx .ordhelp{background:#f3ead9;border:1px solid #eadfcd}
+.kx .dev{background:#fffdf8;border:1px solid #eadfcd;border-radius:22px;box-shadow:0 20px 40px -24px #5a3d1a55;margin-top:clamp(20px,6vh,80px)}
+.kx .dev h1{font-family:"Noto Serif KR","Noto Serif CJK KR",serif;color:#3a3024}
+.kx .devbtn{background:#fffdf8;border-color:#eadfcd}
+.kx .sheet{background:#fffdf9;border:1px solid #eadfcd}
 /* ---------- 모달 ---------- */
 .modal{position:fixed;inset:0;background:#000000b8;display:grid;place-items:center;padding:16px;z-index:20}
 .modal[hidden]{display:none}
@@ -384,6 +429,11 @@ const ICON={
 const catIcon=c=>/분식|라면|떡|밥|식사/.test(c)?ICON.bowl:/음료|커피|드링크|차|주스/.test(c)?ICON.cup:/샐러|샐러드|포케|그린/.test(c)?ICON.leaf:ICON.dot;
 const leafBranch=(cls)=>`<svg class="leafdeco ${cls}" viewBox="0 0 260 200" aria-hidden="true"><g fill="none" stroke="#6f8a4a" stroke-width="2.2" stroke-linecap="round"><path d="M-10 30C60 40 120 70 200 150"/></g>${[[30,33,-20],[62,40,10],[85,52,-35],[112,66,20],[132,82,-30],[155,100,25],[172,118,-25],[190,138,35]].map(([x,y,r],k)=>`<ellipse cx="${x}" cy="${y}" rx="26" ry="9.5" transform="rotate(${r+(k%2?40:-40)} ${x} ${y}) translate(${k%2?14:-14} 0)" fill="${['#7f9a57','#93ad68','#6c8746','#a3b97a'][k%4]}" opacity=".85"/>`).join('')}</svg>`;
 const LEAF_TL=leafBranch('tl'),LEAF_R=leafBranch('r');
+const TABICON={orders:SV('<rect x="5" y="3" width="14" height="18" rx="2"/><path d="M9 8h6M9 12h6M9 16h4"/>'),settle:ICON.card,menu:ICON.bowl,
+ tablets:SV('<rect x="5" y="2.5" width="14" height="19" rx="2.5"/><path d="M11 18h2"/>'),sales:SV('<path d="M4 20h16"/><path d="M7 16v-4M12 16V8M17 16v-7"/>'),
+ incidents:SV('<path d="M12 3 2.5 20h19Z"/><path d="M12 10v4M12 17h.01"/>'),check:SV('<circle cx="12" cy="12" r="9"/><path d="m8 12 3 3 5-6"/>'),
+ settings:SV('<circle cx="12" cy="12" r="3"/><path d="M12 2.5v3M12 18.5v3M2.5 12h3M18.5 12h3M5.3 5.3l2.1 2.1M16.6 16.6l2.1 2.1M5.3 18.7l2.1-2.1M16.6 7.4l2.1-2.1"/>')};
+
 const me=()=>S.tablets.find(t=>t.id===S.dev);
 /* ---- 동영상 소리: 스피커 버튼 한 번 → 크기 조절 막대 ---- */
 ICON.vol=SV('<path d="M4 9h4l5-4v14l-5-4H4Z"/><path d="M16.5 8.5a5 5 0 0 1 0 7M19 6a8.5 8.5 0 0 1 0 12"/>');
@@ -524,6 +574,7 @@ setInterval(()=>{if(S.db&&S.role&&S.role!=='setup'&&dkey()!==S.today)subOrders()
 function rerender(){if(S.role==='customer')customerParts();else if(S.role==='counter')counterTab();else if(S.role==='setup')setupView()}
 
 function adminGate(){
+ document.documentElement.classList.add('kx');
  app.innerHTML=`<div class="dev"><h1>${S.pinSet?'관리 PIN을 입력하세요':'관리 PIN 만들기'}</h1><p class="fine">${S.pinSet?'주문받는 태블릿 화면은 관리 PIN을 아는 사람만 열 수 있습니다.':'처음 한 번만 정합니다. 숫자 4~6자리이며, 주문받는 태블릿과 고객 화면 숨김 메뉴에 쓰입니다.'}</p>
  <form id="gateF" class="form"><label class="full">관리 PIN<input id="gp1" type="password" inputmode="numeric" maxlength="6" autocomplete="off"></label>${S.pinSet?'':'<label class="full">한 번 더 입력<input id="gp2" type="password" inputmode="numeric" maxlength="6" autocomplete="off"></label>'}<button class="btn" type="submit">확인</button></form>
  <button class="btn ghost" data-act="devchange">다른 기기로 지정</button></div>`;
@@ -673,7 +724,8 @@ function pinModal(){S.mctx=S.mctx&&S.mctx.type==='pin'?S.mctx:{type:'pin',v:''};
 /* ---------- 카운터 화면 ---------- */
 const TABS=[['orders','주문 현황'],['settle','후불 정산'],['menu','메뉴 관리'],['tablets','태블릿'],['sales','내역·매출'],['incidents','장애 기록'],['check','확인 필요'],['settings','설정']];
 function counterShell(){
- app.innerHTML=`<div class="ctr"><header class="khead"><h1>${esc(S.config.storeName||'테이블 오더')} · 주문받는 태블릿</h1><span class="pill" id="kOnline"></span><span class="pill">${esc(S.today)}</span><span class="pill" id="openPill"></span><button class="btn sm" data-act="storeopen" id="openBtn"></button><button class="btn sm" data-act="beep" id="beepBtn">${S.beep?'알림음 켜짐':'알림음 켜기'}</button></header><div class="calls" id="kcalls" hidden></div><nav class="ktabs scroll" id="ktabs"></nav><main id="kmain"></main></div>`;
+ document.documentElement.classList.add('kx');
+ app.innerHTML=`<div class="ctr"><header class="khead">${LEAF_TL}<h1>${ICON.emblem}<span class="kname">${esc(S.config.storeName||'테이블 오더')}</span><small>주문받는 태블릿</small></h1><span class="pill" id="kOnline"></span><span class="pill">${esc(S.today)}</span><span class="pill" id="openPill"></span><button class="btn sm" data-act="storeopen" id="openBtn"></button><button class="btn sm" data-act="beep" id="beepBtn">${S.beep?'알림음 켜짐':'알림음 켜기'}</button></header><div class="calls" id="kcalls" hidden></div><nav class="ktabs scroll" id="ktabs"></nav><main id="kmain"></main></div>`;
  counterTab();onlineUI();
  $('#kmain').addEventListener('focusout',()=>setTimeout(()=>{if(S.pending&&!inEdit()){S.pending=false;counterTab()}},0));
 }
@@ -681,7 +733,7 @@ const inEdit=()=>{const a=document.activeElement;if(!a||!$('#kmain')||!$('#kmain
 function counterTab(){
  const k=$('#kmain');if(!k)return;openUI();
  const nNew=S.orders.filter(o=>o.status==='new'&&(S.showTest||!o.test)).length;const nDec=S.decisions.filter(d=>d.status!=='done').length;const nInc=S.incidents.filter(i=>!i.endAt).length;
- $('#ktabs').innerHTML=TABS.map(([id,l])=>`<button class="${S.tab===id?'on':''}" data-act="tab" data-t="${id}">${l}${id==='orders'&&nNew?`<span class="n">${nNew}</span>`:''}${id==='check'&&nDec?`<span class="n w">${nDec}</span>`:''}${id==='incidents'&&nInc?`<span class="n w">${nInc}</span>`:''}</button>`).join('');
+ $('#ktabs').innerHTML=TABS.map(([id,l])=>`<button class="${S.tab===id?'on':''}" data-act="tab" data-t="${id}">${TABICON[id]||''}<span>${l}</span>${id==='orders'&&nNew?`<span class="n">${nNew}</span>`:''}${id==='check'&&nDec?`<span class="n w">${nDec}</span>`:''}${id==='incidents'&&nInc?`<span class="n w">${nInc}</span>`:''}</button>`).join('');
  if(inEdit()||S.dragging){S.pending=true;return}
  k.innerHTML=({orders:vOrders,settle:vSettle,menu:vMenu,tablets:vTablets,sales:vSales,incidents:vIncidents,check:vCheck,settings:vSettings})[S.tab]();
  if(S.mctx&&S.mctx.type==='pay')payModal();
