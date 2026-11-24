@@ -440,7 +440,7 @@ ICON.vol=SV('<path d="M4 9h4l5-4v14l-5-4H4Z"/><path d="M16.5 8.5a5 5 0 0 1 0 7M1
 ICON.volLow=SV('<path d="M4 9h4l5-4v14l-5-4H4Z"/><path d="M16.5 8.5a5 5 0 0 1 0 7"/>');
 ICON.mute=SV('<path d="M4 9h4l5-4v14l-5-4H4Z"/><path d="M17 9.5l5 5M22 9.5l-5 5"/>');
 S.vol={v:50,m:true};
-function loadVol(){try{const x=JSON.parse(localStorage.getItem('tod_vol_'+S.dev)||'null');if(x&&typeof x.v==='number')S.vol={v:Math.max(0,Math.min(100,x.v)),m:!!x.m}}catch(e){}}
+function loadVol(){try{const x=JSON.parse(localStorage.getItem('tod_vol_'+S.dev)||'null');if(x&&typeof x.v==='number')S.vol={v:Math.max(0,Math.min(100,x.v)),m:true}}catch(e){}}
 function saveVol(){try{localStorage.setItem('tod_vol_'+S.dev,JSON.stringify(S.vol))}catch(e){}}
 const volOff=()=>S.vol.m||!S.vol.v||S.volBlocked;
 const canSound=()=>!!window.TODApp||!!(navigator.userActivation&&navigator.userActivation.hasBeenActive);
@@ -876,7 +876,7 @@ function vSettings(){const c=S.config;const t=me()||{};
  <div class="catrow"><input id="ytUrl" placeholder="유튜브 링크 붙여넣기 (youtube.com/watch?v=… 또는 youtu.be/…)" style="flex:1 1 260px"><button class="btn ghost" data-act="ytadd">유튜브 추가</button></div>
  <span class="fine">유튜브는 주문용 태블릿이 인터넷에 연결되어 있어야 나옵니다. 영상 주인이 퍼가기를 막은 영상은 재생되지 않고 다음 영상으로 넘어가며, 영상에 따라 유튜브 광고가 나올 수 있습니다.</span>
  ${S.assetUsage?`<span class="fine">올린 파일 ${S.assetUsage.files}개 · ${MB(S.assetUsage.bytes)}${S.assetUsage.freeBytes!=null?' · 서버 디스크 남은 공간 '+(S.assetUsage.freeBytes/1073741824).toFixed(1)+'GB':''}</span>`:''}
- <span class="fine">mp4 또는 webm, 파일 하나당 최대 2GB. 여러 개를 올리면 순서대로 이어 재생하고, 여러 파일을 한 번에 골라도 됩니다. 처음에는 소리 없이 재생되고, 주문용 태블릿 동영상 오른쪽 아래 스피커 버튼으로 소리를 켜고 크기를 조절할 수 있습니다 (태블릿마다 따로 기억).</span>
+ <span class="fine">mp4 또는 webm, 파일 하나당 최대 2GB. 여러 개를 올리면 순서대로 이어 재생하고, 여러 파일을 한 번에 골라도 됩니다. 주문용 태블릿은 켤 때마다 소리 없이 시작합니다. 동영상 오른쪽 아래 스피커 버튼으로 소리를 켜고 크기를 조절할 수 있습니다 (크기는 태블릿마다 기억).</span>
  <label class="form"><span>동영상 영역 높이: 화면의 <b id="vpv">${Number(c.videoPct)||40}</b>% (주문 6 : 동영상 4 = 40%)</span><input type="range" id="vidPct" min="15" max="60" value="${Number(c.videoPct)||40}"></label></div>
  <div class="panel"><h3>영업 준비 중 화면</h3><span class="fine">위쪽 '영업 종료'를 누르면 주문용 태블릿 6대에 이 그림이 전체 화면으로 나오고 주문이 막힙니다. '영업 시작'을 누르면 다시 주문 화면으로 돌아갑니다.</span>${closedSrc()?`<img src="${esc(closedSrc())}" alt="준비 중 화면" style="width:100%;max-height:220px;object-fit:contain;border-radius:12px;background:#0d1a14">`:'<span class="fine">그림이 없으면 "영업 준비 중" 글씨만 나옵니다.</span>'}<div class="catrow">${S.assets?'<label class="btn ghost">그림 바꾸기<input type="file" accept="image/*" data-up="closedimg" hidden></label>':''}${S.config.closedImg&&window.TOD_API?'<button class="btn ghost" data-act="closedimgreset">기본 그림으로</button>':''}</div></div>
  <div class="panel vpanel"><h3>음성 안내 (주문받는 태블릿)</h3>${(()=>{const v=vcfg(),ko=koVoice();return `
