@@ -1,0 +1,10 @@
+{
+  "version": "1.1.0",
+  "files": [
+    "server.js",
+    "public/index.html",
+    "version.json",
+    "README.md"
+  ],
+  "notes": "설정 탭에서 버튼으로 업데이트·되돌리기"
+}

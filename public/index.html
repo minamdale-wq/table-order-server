@@ -1,0 +1,748 @@
+<!DOCTYPE html>
+<html lang="ko"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>테이블 오더 (매장 서버)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Gothic+A1:wght@400;600;800&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
+<style>
+/* VOICE: 매장 카운터 장비처럼 단단하고 큼직하게, 군더더기 없이
+   IDEA: 스크린골프 룸의 잔디색 스코어보드 + 주방 주문 전표
+   PICTURE: 고객 화면은 메뉴판 자체, 카운터는 전표가 꽂힌 보드
+   COLOUR and TYPE: 잔디 초록 띠, 흰 카드, 주황은 '주문' 버튼에만 / Gothic A1
+   LAYOUT: 30인치 고객 화면 = 분류 | 메뉴 | 장바구니 + 하단 동영상 띠, 카운터 = 탭 + 보드 */
+:root{color-scheme:light dark;--bg:light-dark(#f3f5f1,#0c1310);--card:light-dark(#fff,#151f1a);--ink:light-dark(#13201a,#edf3ee);--mute:light-dark(#5b6a61,#97a99e);--line:light-dark(#dbe3dc,#26352d);--turf:#1d7548;--turf2:light-dark(#e1f0e6,#163024);--hot:#ff6a1a;--bad:#d6392a;--ok:#1d9a57;--warn:light-dark(#b26b00,#ffb84d);--vidh:40vh}
+:root[data-theme=light]{color-scheme:light}:root[data-theme=dark]{color-scheme:dark}
+*{box-sizing:border-box;min-width:0}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 "Gothic A1",system-ui,sans-serif;overflow-x:clip}
+button,input,select,textarea{font:inherit;color:inherit}
+button{cursor:pointer;border:0;background:none;touch-action:manipulation}
+button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible{outline:3px solid var(--hot);outline-offset:2px}
+input,select,textarea{font-size:16px;min-height:44px;padding:8px 12px;border:1px solid var(--line);border-radius:10px;background:var(--card);width:100%}
+textarea{min-height:88px}
+input[type=checkbox]{width:22px;min-height:22px;accent-color:var(--turf)}
+input[type=range]{padding:0;border:0;accent-color:var(--turf)}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;min-height:44px;padding:8px 16px;border-radius:10px;background:var(--turf);color:#fff;font-weight:600;white-space:nowrap}
+.btn.ghost{background:var(--card);color:var(--ink);border:2px solid light-dark(#8e9c93,#6b7d72);font-weight:700}
+.btn.bad{background:var(--bad)}.btn.sm{min-height:38px;padding:6px 12px;font-size:14px}
+.btn:disabled,.cta:disabled{opacity:.4;cursor:not-allowed}
+.cta{min-height:64px;border-radius:14px;background:var(--hot);color:#fff;font-weight:800;font-size:1.25em;padding:10px 22px}
+.link{color:var(--mute);text-decoration:underline;min-height:44px;padding:0 6px}
+.fine{color:var(--mute);font-size:13px;margin:6px 0 0}
+.need{display:inline-block;background:light-dark(#fff1d6,#3a2a0c);color:var(--warn);border-radius:6px;padding:1px 7px;font-size:12px;font-weight:600;white-space:nowrap}
+.splash{min-height:100dvh;display:grid;place-content:center;text-align:center;padding:24px;gap:8px}
+.splash b{font-size:22px}
+/* ---------- 고객 화면 ---------- */
+.cust{height:100dvh;display:grid;grid-template-rows:auto minmax(0,1fr) var(--vidh);font-size:clamp(16px,1.1vw,26px)}
+.chead{display:flex;align-items:center;gap:1em;background:var(--turf);color:#fff;padding:.55em 1.2em}
+.logo{color:#fff;font-weight:800;font-size:1.3em;min-height:44px;letter-spacing:-.02em}
+.ctitle{font-weight:800;font-size:1.3em;flex:1}
+.cbadge{background:#ffd24d;color:#3a2a00;border-radius:8px;padding:.15em .6em;font-weight:800;font-size:.85em}
+.conn{display:inline-flex;align-items:center;gap:.4em;font-size:.85em}
+.conn i{width:.7em;height:.7em;border-radius:50%;background:#7ef0a8;box-shadow:0 0 0 3px #ffffff30}
+.conn.off i{background:#ff6b5e}
+.hbtn{background:#ffffff22;color:#fff;border-radius:10px;padding:.4em .9em;min-height:44px;font-weight:600}
+.hbtn.call{background:#fff;color:var(--turf);font-weight:800}.hbtn.call.on{background:#ffd24d;color:#3a2a00}
+.calls{background:var(--hot);color:#fff;padding:8px max(3vw,16px);display:grid;gap:6px}.calls[hidden]{display:none}
+.callrow{display:flex;flex-wrap:wrap;align-items:center;gap:8px 14px;font-size:18px}.callrow b{font-size:20px}.callrow time{opacity:.85;font-size:15px;flex:1}.callrow .btn{background:#fff;color:var(--hot)}
+.cbody{display:grid;grid-template-columns:clamp(130px,11vw,230px) minmax(0,1fr) clamp(300px,25vw,500px);min-height:0}
+.cats{display:flex;flex-direction:column;gap:.35em;padding:1em .6em;overflow:auto;background:var(--turf2)}
+.cats button{text-align:left;padding:.7em .8em;border-radius:12px;font-weight:600;min-height:56px}
+.cats button.on{background:var(--turf);color:#fff}
+.grid{overflow:auto;padding:1em;display:grid;grid-template-columns:repeat(auto-fill,minmax(clamp(170px,14vw,300px),1fr));gap:1em;align-content:start}
+.mcard{position:relative;display:flex;flex-direction:column;text-align:left;background:var(--card);border:1px solid var(--line);border-radius:16px;overflow:hidden;min-height:44px}
+.mcard img,.mcard .ph{width:100%;aspect-ratio:4/3;object-fit:cover;display:block;background:var(--turf2)}
+.mcard .ph{display:grid;place-items:center;font-size:2.4em;font-weight:800;color:var(--turf)}
+.mcard .mn{font-weight:800;padding:.55em .7em 0;font-size:1.05em;line-height:1.25}
+.mcard .md{padding:.2em .7em 0;color:var(--mute);font-size:.8em;line-height:1.35}
+.mcard .mp{padding:.35em .7em .7em;font-weight:800;color:var(--turf);margin-top:auto}
+.mcard .mo{position:absolute;top:.5em;right:.5em;background:var(--card);border-radius:8px;padding:.1em .5em;font-size:.72em;font-weight:600}
+.mcard.so{opacity:.55;cursor:not-allowed}
+.stamp{position:absolute;inset:0;display:grid;place-items:center;font-size:2em;font-weight:800;color:var(--bad);background:light-dark(#ffffffaa,#000000aa)}
+.cart{display:flex;flex-direction:column;border-left:1px solid var(--line);background:var(--card);min-height:0}
+.carth{display:flex;align-items:center;gap:.6em;padding:.8em 1em;border-bottom:1px solid var(--line)}
+.carth b{font-size:1.15em;flex:1}
+.lines{flex:1;overflow:auto;padding:.4em 1em}
+.line{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:.3em .8em;padding:.7em 0;border-bottom:1px dashed var(--line)}
+.line small{display:block;color:var(--mute);font-size:.78em}
+.line em{display:block;color:var(--bad);font-style:normal;font-size:.8em;font-weight:600}
+.line .lp{grid-column:2;grid-row:1;text-align:right;white-space:nowrap}
+.qty{display:flex;align-items:center;gap:.4em;grid-column:1/-1}
+.qty button{width:2.1em;height:2.1em;min-width:44px;min-height:44px;border-radius:50%;border:1px solid var(--line);font-size:1.1em;font-weight:800}
+.qty span{min-width:1.6em;text-align:center;font-weight:800}
+.empty{color:var(--mute);text-align:center;padding:2em 1em}
+.cartf{padding:1em;border-top:1px solid var(--line);display:grid;gap:.5em}
+.sum{display:flex;justify-content:space-between;align-items:baseline;font-size:1.15em}
+.sum b{font-size:1.4em;white-space:nowrap}
+.vid{position:relative;background:#000;overflow:hidden}
+.vid video{width:100%;height:100%;object-fit:contain;display:block}
+#ytwrap{position:absolute;inset:0}#ytwrap[hidden],.vid video[hidden]{display:none}#ytwrap iframe{width:100%;height:100%;border:0;pointer-events:none}.vid .vempty{z-index:1}
+.vid .vempty{position:absolute;inset:0;display:grid;place-items:center;color:#9aa;font-size:.9em}
+@media (max-aspect-ratio:4/5){.cbody{grid-template-columns:minmax(0,1fr) clamp(280px,36vw,460px);grid-template-rows:auto minmax(0,1fr)}.cats{grid-column:1/-1;flex-direction:row;overflow-x:auto}.cats button{flex:none}}
+/* ---------- 모달 ---------- */
+.modal{position:fixed;inset:0;background:#000000b8;display:grid;place-items:center;padding:16px;z-index:20}
+.modal[hidden]{display:none}
+.sheet{background:var(--card);border-radius:20px;box-shadow:0 24px 70px #000a;width:min(760px,100%);max-height:92dvh;overflow:auto;padding:clamp(18px,2vw,32px);display:grid;gap:14px}
+.sheet.big{font-size:clamp(16px,1.1vw,26px);width:min(1000px,100%)}
+.sheet h2{margin:0;font-size:1.6em;line-height:1.15}
+.sheet fieldset{border:0;padding:0;margin:0;display:grid;gap:.5em}
+.sheet legend{font-weight:800;padding:0;margin-bottom:.5em;font-size:1.1em}
+.chips{display:flex;flex-wrap:wrap;gap:.5em}
+.chip{min-height:64px;padding:.55em 1.3em;border-radius:14px;border:2px solid light-dark(#8e9c93,#6b7d72);background:light-dark(#f4f7f5,#1d2a23);color:var(--ink);font-weight:800;font-size:1.08em;box-shadow:0 2px 0 light-dark(#c9d3cc,#0006)}
+.chip.on{border-color:var(--turf);background:var(--turf);color:#fff;box-shadow:none}
+.mfoot{display:flex;gap:12px;justify-content:flex-end;flex-wrap:wrap}
+.mfoot .cta,.mfoot .btn{flex:1 1 200px}
+.review li{display:grid;grid-template-columns:minmax(0,1fr) auto auto;gap:1em;padding:.6em 0;border-bottom:1px solid var(--line);align-items:baseline}
+.review ul{list-style:none;margin:0;padding:0}
+.review small{color:var(--mute);display:block}
+.bigsum{display:flex;justify-content:space-between;font-size:1.4em;font-weight:800}
+.notice{background:var(--turf2);border-radius:12px;padding:.8em 1em}
+.alert{background:light-dark(#ffe6e2,#3a1410);color:var(--bad);border-radius:12px;padding:.8em 1em;font-weight:600}
+.pinpad{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}.pinpad button{min-height:64px;border-radius:12px;border:1px solid var(--line);font-size:22px;font-weight:800}
+#toast{position:fixed;left:50%;bottom:24px;transform:translate(-50%,40px);opacity:0;background:var(--ink);color:var(--bg);padding:12px 20px;border-radius:12px;font-weight:600;transition:.25s;z-index:30;max-width:90vw;pointer-events:none}
+#toast.show{opacity:1;transform:translate(-50%,0)}#toast.bad{background:var(--bad);color:#fff}#toast.new{background:var(--hot);color:#fff}#toast.ok{background:var(--ok);color:#fff}
+/* ---------- 카운터 화면 ---------- */
+.khead{display:flex;flex-wrap:wrap;align-items:center;gap:10px 16px;background:var(--turf);color:#fff;padding:12px max(3vw,16px)}
+.khead h1{font-size:22px;margin:0;flex:1 1 auto}
+.khead .pill{background:#ffffff22;border-radius:999px;padding:6px 12px;font-size:14px;white-space:nowrap}
+.khead .btn{background:#fff;color:var(--turf)}
+.ktabs{display:flex;gap:4px;padding:8px max(3vw,16px);border-bottom:1px solid var(--line);background:var(--card);position:sticky;top:0;z-index:5}
+.ktabs button{padding:8px 14px;border-radius:10px;min-height:44px;font-weight:600;flex:none;white-space:nowrap}
+.ktabs button.on{background:var(--turf2);color:var(--turf)}
+.ktabs .n{background:var(--hot);color:#fff;border-radius:999px;padding:0 7px;font-size:12px;margin-left:4px}
+.ktabs .n.w{background:var(--warn)}
+main#kmain{padding:clamp(14px,2.4vw,32px) max(3vw,16px);max-width:1500px;margin:0 auto}
+.bar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:16px}
+.bar h2{margin:0;font-size:24px;flex:1 1 auto}
+.board{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;align-items:start}
+.col{background:var(--turf2);border-radius:16px;padding:10px;display:grid;gap:10px}
+.col>h3{margin:4px 6px;font-size:16px;display:flex;justify-content:space-between}
+.ticket{background:var(--card);border-radius:12px;padding:12px;border-top:6px solid var(--line);display:grid;gap:8px;box-shadow:0 1px 0 var(--line)}
+.ticket.st-new{border-top-color:var(--hot)}.ticket.st-accepted{border-top-color:var(--turf)}.ticket.st-done{opacity:.8}.ticket.st-canceled{opacity:.6}
+.ticket header{display:flex;gap:8px;align-items:baseline}.ticket header b{font-size:20px}.ticket header span{flex:1;font-weight:600}.ticket time{color:var(--mute);font-size:14px}
+.ticket ul{margin:0;padding:0;list-style:none;display:grid;gap:4px}
+.ticket li{display:flex;justify-content:space-between;gap:8px}.ticket li small{color:var(--mute)}
+.ticket footer{display:flex;justify-content:space-between;align-items:center;border-top:1px dashed var(--line);padding-top:8px}
+.ticket .acts{display:flex;flex-wrap:wrap;gap:6px}
+.tag{display:inline-block;border-radius:6px;padding:1px 7px;font-size:12px;font-weight:600;background:var(--turf2);white-space:nowrap}
+.tag.unpaid{background:light-dark(#ffe9dc,#3a2010);color:light-dark(#b3460c,#ffa36b)}.tag.paid{background:light-dark(#dff4e8,#123522);color:var(--ok)}
+.tag.test{background:#ffd24d;color:#3a2a00}.tag.off{background:light-dark(#ffe6e2,#3a1410);color:var(--bad)}.tag.on{background:light-dark(#dff4e8,#123522);color:var(--ok)}
+.memo{background:light-dark(#fff7e0,#2c240f);border-radius:8px;padding:6px 8px;font-size:14px}
+.cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:12px}
+.panel{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px;display:grid;gap:10px}
+.panel h3{margin:0;font-size:18px}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px;margin-bottom:16px}
+.kpi{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px 16px}
+.kpi span{color:var(--mute);font-size:14px}.kpi b{display:block;font-size:clamp(22px,2.4vw,32px);white-space:nowrap}
+.kpi.main{background:var(--turf);color:#fff;border:0}.kpi.main span{color:#e1f0e6}
+table{width:100%;border-collapse:collapse;background:var(--card);border-radius:12px;overflow:hidden}
+th,td{padding:10px 12px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}
+th{font-size:13px;color:var(--mute);font-weight:600;background:var(--turf2)}
+td.r,th.r{text-align:right;white-space:nowrap}
+.two{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:16px;margin-bottom:16px}
+.form{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px}
+.form label{display:grid;gap:4px;font-size:14px;font-weight:600}
+.form label.full{grid-column:1/-1}
+.ck{display:flex!important;align-items:center;gap:8px}
+.grp{border:1px solid var(--line);border-radius:12px;padding:12px;display:grid;gap:8px}
+.crow{display:grid;grid-template-columns:minmax(0,2fr) minmax(0,1fr) auto;gap:8px;align-items:center}
+.mrow{display:grid;grid-template-columns:56px minmax(0,1fr) auto;gap:12px;align-items:center;padding:10px;border-bottom:1px solid var(--line)}
+.mrow img,.mrow .ph{width:56px;height:56px;border-radius:10px;object-fit:cover;background:var(--turf2);display:grid;place-items:center;font-weight:800;color:var(--turf)}
+.mrow .acts{display:flex;flex-wrap:wrap;gap:6px;justify-content:flex-end}
+.catrow{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.catrow .tag{font-size:14px;padding:6px 10px;display:inline-flex;gap:4px;align-items:center}
+.catrow .tag button{min-height:28px;padding:0 4px;font-weight:800}
+.dev{display:grid;gap:10px;max-width:760px;margin:0 auto;padding:clamp(20px,5vw,60px) 16px}
+.dev h1{font-size:clamp(28px,4vw,44px);line-height:1.1;margin:0 0 8px}
+.devbtn{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:16px 18px;min-height:64px;border-radius:14px;background:var(--card);border:1px solid var(--line);font-size:18px;font-weight:600;text-align:left}
+.dec{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:12px;align-items:start;padding:14px;border-bottom:1px solid var(--line)}
+.dec p{margin:4px 0 0;color:var(--mute);font-size:14px}
+.dec .ans{color:var(--ink);background:var(--turf2);border-radius:8px;padding:6px 8px}
+.scroll{overflow-x:auto}.scroll button{flex:none}
+details summary{cursor:pointer;min-height:44px;display:flex;align-items:center;font-weight:600}
+@media(max-width:900px){.board{grid-template-columns:minmax(0,1fr)}}
+@media(max-width:600px){table{font-size:13px}.stack thead{display:none}.stack tr{display:grid;padding-block:10px}.stack td{display:flow-root;border:0;padding:3px 0;padding-inline-start:8em;text-align:start}.stack td::before{content:attr(data-l);float:inline-start;width:7.5em;margin-inline-start:-8em;white-space:normal;color:var(--mute)}.stack td:empty{display:none}.crow{grid-template-columns:minmax(0,1fr) 90px auto}}
+@media(prefers-reduced-motion:reduce){#toast{transition:none}}
+</style><script>new MutationObserver(()=>{for(const c of document.querySelectorAll('.stack td:not([data-l])')){let i=0,p=c;while(p=p.previousElementSibling)i+=p.colSpan;c.dataset.l=c.closest('table').rows[0].cells[i]?.textContent||''}}).observe(document,{childList:true,subtree:true})</script></head><body>
+<div id="app"><div class="splash">불러오는 중…</div></div>
+<div id="modal" class="modal" hidden></div>
+<div id="toast" role="status" aria-live="polite"></div>
+<script>
+/* 미니 서버 연결 계층: 앱이 쓰는 db · room · assets 를 이 매장의 서버로 연결합니다 */
+(()=>{
+const CID=('c'+Date.now().toString(36)+Math.random().toString(36).slice(2,10)).replace(/[^a-z0-9]/gi,'');
+const pinH=()=>{try{return localStorage.getItem('tod.admin')||''}catch(e){return ''}};
+async function api(url,body,method){
+ const h={};if(body!==undefined)h['Content-Type']='application/json';const p=pinH();if(p)h['X-Admin-Pin']=p;
+ let r;try{r=await fetch(url,{method:method||(body!==undefined?'POST':'GET'),headers:h,body:body!==undefined?JSON.stringify(body):undefined,cache:'no-store'})}
+ catch(e){throw{code:'unavailable',message:'서버에 연결할 수 없습니다'}}
+ const j=await r.json().catch(()=>({}));if(!r.ok)throw{code:j.code||('http_'+r.status),message:j.message||''};return j}
+window.TOD_API=api;window.TOD_SKEW=0;
+let connected=false,peers=[],presence={};const connL=new Set(),peersL=new Set(),chL=new Set();
+function setConn(v){if(connected===v)return;connected=v;connL.forEach(f=>{try{f(v)}catch(e){}})}
+function hb(){return api('/api/hb',{c:CID,presence}).then(r=>{if(r&&r.now)window.TOD_SKEW=r.now-Date.now()}).catch(()=>{})}
+const es=new EventSource('/api/events?c='+CID);
+function maybeReload(page){if(!page)return;if(!window.TOD_PAGE){window.TOD_PAGE=page;return}if(page===window.TOD_PAGE||window.TOD_RELOADING)return;window.TOD_RELOADING=1;const t=()=>{let ok=true;try{ok=!window.TOD_CAN_RELOAD||window.TOD_CAN_RELOAD()}catch(x){}if(ok)location.reload();else setTimeout(t,5000)};setTimeout(t,800)}
+es.addEventListener('hello',e=>{let d={};try{d=JSON.parse(e.data);window.TOD_SKEW=d.now-Date.now()}catch(x){}setConn(true);hb();chL.forEach(f=>f(null));maybeReload(d.page)});
+es.addEventListener('reload',e=>{try{maybeReload(JSON.parse(e.data).page)}catch(x){}});
+es.addEventListener('change',e=>{let d;try{d=JSON.parse(e.data)}catch(x){return}chL.forEach(f=>f(d.paths||null))});
+es.addEventListener('peers',e=>{try{peers=JSON.parse(e.data)}catch(x){return}peersL.forEach(f=>{try{f({peers,joined:[],left:[],updated:[]})}catch(x){}})});
+es.onerror=()=>setConn(false);
+setInterval(hb,10000);
+const snap=(id,x)=>({id,exists:!!x,data:()=>x?x.data:undefined,metadata:{fromCache:false,hasPendingWrites:false},_v:x?x.version:0});
+const write=ops=>api('/api/write',{ops}).then(()=>{});
+const rid=()=>'x'+Date.now().toString(36)+Math.random().toString(36).slice(2,8);
+function docRef(p){const id=p.split('/').pop();return{id,path:p,
+ get:async()=>snap(id,(await api('/api/doc',{path:p})).doc),
+ set:d=>write([{op:'set',path:p,data:d}]),update:d=>write([{op:'update',path:p,data:d}]),delete:()=>write([{op:'delete',path:p}]),
+ onSnapshot(next){let alive=true,busy=false,again=false;
+  const run=async()=>{if(busy){again=true;return}busy=true;try{const r=await api('/api/doc',{path:p});if(alive)next(snap(id,r.doc))}catch(e){}busy=false;if(again&&alive){again=false;run()}};
+  const f=ps=>{if(!ps||ps.includes(p))run()};chL.add(f);run();return()=>{alive=false;chL.delete(f)}}}}
+function query(col,spec){const S={col,where:spec.where||[],order:spec.order||null,limit:spec.limit||null};
+ const fetchDocs=async()=>(await api('/api/query',S)).docs.map(x=>snap(x.id,x));
+ const qs=(docs,ch)=>({docs,size:docs.length,empty:!docs.length,docChanges:()=>ch,metadata:{fromCache:false,hasPendingWrites:false}});
+ return{path:col,
+  where:(f,o,v)=>query(col,{...S,where:[...S.where,[f,o,v]]}),orderBy:(f,d)=>query(col,{...S,order:[f,d||'asc']}),limit:n=>query(col,{...S,limit:n}),
+  doc:id=>docRef(col+'/'+(id||rid())),add:async d=>{const r=docRef(col+'/'+rid());await r.set(d);return r},
+  get:async()=>{const docs=await fetchDocs();return qs(docs,docs.map((doc,i)=>({type:'added',doc,oldIndex:-1,newIndex:i})))},
+  onSnapshot(next){let alive=true,busy=false,again=false,first=true,prev=new Map(),timer=null;
+   const run=async()=>{if(busy){again=true;return}busy=true;
+    try{const docs=await fetchDocs();if(alive){const cur=new Map(),ch=[];
+     docs.forEach((d,i)=>{cur.set(d.id,d);const o=prev.get(d.id);if(!o)ch.push({type:'added',doc:d,oldIndex:-1,newIndex:i});else if(o._v!==d._v)ch.push({type:'modified',doc:d,oldIndex:i,newIndex:i})});
+     prev.forEach((o,id)=>{if(!cur.has(id))ch.push({type:'removed',doc:o,oldIndex:0,newIndex:-1})});prev=cur;
+     if(ch.length||first){first=false;next(qs(docs,ch))}}}catch(e){}
+    busy=false;if(again&&alive){again=false;run()}};
+   const f=ps=>{if(ps&&!ps.some(x=>x.startsWith(col+'/')))return;clearTimeout(timer);timer=setTimeout(run,ps?60:0)};
+   chL.add(f);run();return()=>{alive=false;clearTimeout(timer);chL.delete(f)}}}}
+const db={doc:docRef,collection:c=>query(c,{})};
+const room={presence(p){for(const k in p){if(p[k]===null)delete presence[k];else presence[k]=p[k]}hb();return Promise.resolve()},
+ onPeers(fn){peersL.add(fn);setTimeout(()=>fn({peers,joined:[],left:[],updated:[]}),0);return()=>peersL.delete(fn)},
+ onConnection(fn){connL.add(fn);setTimeout(()=>fn(connected),0);return()=>connL.delete(fn)},
+ connected:()=>connected,peers:()=>peers};
+const assets={upload(blob,opt){return new Promise((ok,no)=>{const x=new XMLHttpRequest();
+  x.open('POST','/api/upload?type='+encodeURIComponent((opt&&opt.type)||blob.type||''));const p=pinH();if(p)x.setRequestHeader('X-Admin-Pin',p);
+  x.upload.onprogress=e=>{if(e.lengthComputable&&window.TOD_PROGRESS)window.TOD_PROGRESS(e.loaded/e.total)};
+  x.onload=()=>{let j={};try{j=JSON.parse(x.responseText)}catch(e){}x.status<300?ok(j):no({code:j.code||'upstream_error',message:j.message||''})};
+  x.onerror=()=>no({code:'store_unavailable',message:'서버에 연결할 수 없습니다'});x.send(blob)})},
+ list:()=>api('/api/assets'),delete:id=>api('/api/assets/delete',{id})};
+window.claude={use:async n=>n==='db'?db:n==='room'?room:n==='assets'?assets:null};
+})();
+</script>
+<script>
+{
+const NOW=()=>Date.now()+(window.TOD_SKEW||0);
+const $=(s,r=document)=>r.querySelector(s);
+const esc=v=>String(v==null?'':v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const won=n=>(Math.round(Number(n)||0)).toLocaleString('ko-KR')+'원';
+const pad=n=>String(n).padStart(2,'0');
+const dkey=(d=new Date(NOW()))=>d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate());
+const addDays=(k,n)=>{const p=k.split('-').map(Number);return dkey(new Date(p[0],p[1]-1,p[2]+n))};
+const hm=t=>{if(!t)return '-';const d=new Date(t);return pad(d.getHours())+':'+pad(d.getMinutes())};
+const dt=t=>{if(!t)return '-';const d=new Date(t);return (d.getMonth()+1)+'/'+d.getDate()+' '+hm(t)};
+const dur=ms=>{if(ms<0||!isFinite(ms))return '-';const m=Math.round(ms/60000);return m<60?m+'분':Math.floor(m/60)+'시간 '+(m%60)+'분'};
+const okId=v=>typeof v==='string'&&/^[A-Za-z0-9_-]{6,64}$/.test(v);
+const blob=id=>okId(id)?'/_blob/'+id:'';
+const LS={get(k){try{return localStorage.getItem(k)}catch(e){return null}},set(k,v){try{localStorage.setItem(k,v)}catch(e){}}};
+const NEED='<span class="need">확인 필요</span>';
+const ST={new:'신규',accepted:'접수',done:'전달 완료',canceled:'취소'};
+const METHODS=['카드','현금','계좌이체','기타'];
+const KINDS=['연결 끊김','네트워크 끊김','화면 멈춤','주문 누락','주문 전송 실패','기타'];
+const S={db:null,room:null,assets:null,ready:false,role:null,config:{},menu:[],tablets:[],orders:[],incidents:[],decisions:[],
+ dev:null,online:new Set(),roomConn:null,cat:null,cart:[],tab:'orders',showTest:false,beep:false,localVid:null,
+ salesMode:'day',salesDate:dkey(),salesFrom:addDays(dkey(),-6),salesTo:dkey(),salesTest:false,salesData:null,incFilter:'',
+ offlineSince:null,openInc:{},lostTimers:{},subs:[],mctx:null,pending:false,today:dkey(),booted:{},taps:[]};
+const hashDev=()=>{const h=location.hash.slice(1);return /^t[a-z0-9]{0,30}$/.test(h)?h:null};
+S.dev=hashDev()||LS.get('tod.dev')||null;
+const me=()=>S.tablets.find(t=>t.id===S.dev);
+const app=$('#app'),modal=$('#modal');
+function toast(msg,kind){const t=$('#toast');t.textContent=msg;t.className='show '+(kind||'');clearTimeout(toast.t);toast.t=setTimeout(()=>{t.className=''},3400)}
+function openModal(html,cls){modal.innerHTML='<div class="sheet '+(cls||'')+'" role="dialog" aria-modal="true">'+html+'</div>';modal.hidden=false}
+function closeModal(){modal.hidden=true;modal.innerHTML='';S.mctx=null}
+modal.addEventListener('click',e=>{if(e.target===modal&&!(S.mctx&&S.mctx.lock))closeModal()});
+const timeout=(p,ms)=>Promise.race([p,new Promise((_,r)=>setTimeout(()=>r({code:'timeout'}),ms))]);
+const busy=new Set();
+async function w(path,fn){if(busy.has(path)){toast('처리 중입니다…');return false}busy.add(path);
+ try{await timeout(fn(S.db.doc(path)),12000);return true}catch(e){toast(e&&e.code==='not_permitted'?'관리 PIN이 필요합니다. 주문받는 태블릿에서 해 주세요':e&&e.code==='unavailable'?'서버에 연결할 수 없습니다':'저장 실패: '+((e&&(e.code||e.message))||'알 수 없음'),'bad');return false}finally{busy.delete(path)}}
+function armed(b){if(b.dataset.armed)return true;b.dataset.armed='1';const t=b.textContent;b.textContent='한 번 더 눌러 확인';setTimeout(()=>{if(b.isConnected){delete b.dataset.armed;b.textContent=t}},3000);return false}
+async function cap(n){for(let i=0;i<60&&!(window.claude&&window.claude.use);i++)await new Promise(r=>setTimeout(r,100));
+ if(!(window.claude&&window.claude.use))return null;try{return await window.claude.use(n)}catch(e){return null}}
+const saveConfig=p=>{const n={...S.config,...p};Object.keys(n).forEach(k=>{if(n[k]===undefined)delete n[k]});return w('config/main',r=>r.set(n))};
+const cats=()=>{const c=[...(S.config.categories||[])];S.menu.forEach(m=>{if(m.cat&&!c.includes(m.cat))c.push(m.cat)});return c};
+const menuById=id=>S.menu.find(m=>m.id===id);
+const okYt=v=>typeof v==='string'&&/^[A-Za-z0-9_-]{11}$/.test(v);
+function ytId(u){u=String(u||'').trim();if(okYt(u))return u;try{const x=new URL(u);const h=x.hostname.replace(/^www\.|^m\./,'');if(h==='youtu.be')return okYt(x.pathname.slice(1,12))?x.pathname.slice(1,12):null;if(h.endsWith('youtube.com')||h.endsWith('youtube-nocookie.com')){const v=x.searchParams.get('v');if(okYt(v))return v;const m=/^\/(?:shorts|embed|live|v)\/([A-Za-z0-9_-]{11})/.exec(x.pathname);if(m)return m[1]}}catch(e){}return null}
+const vids=()=>Array.isArray(S.config.videos)?S.config.videos.filter(v=>v&&(okId(v.id)||okYt(v.yt))):(okId(S.config.videoId)?[{id:S.config.videoId,name:S.config.videoName||'',size:S.config.videoSize||0}]:[]);
+const saveVids=list=>saveConfig({videos:list,videoId:undefined,videoName:undefined,videoSize:undefined});
+const MB=b=>((b||0)/1048576).toFixed(1)+'MB';
+async function loadUsage(){if(!S.assets)return;try{const r=await S.assets.list();S.assetUsage=r.usage;if(S.tab==='settings')counterTab()}catch(e){}}
+
+/* ---------- 부팅·구독 ---------- */
+async function boot(){
+ S.db=await cap('db');
+ if(!S.db){app.innerHTML='<div class="splash"><b>앱을 시작할 수 없습니다.</b><p>페이지를 새로고침해 주세요.</p></div>';return}
+ try{const a=await window.TOD_API('/api/auth/status');S.pinSet=!!a.pinSet;const p=LS.get('tod.admin');if(p)S.adminOk=!!(await window.TOD_API('/api/auth/check',{pin:p})).ok}catch(e){}
+ const slow=setTimeout(()=>{if(!S.ready)app.innerHTML='<div class="splash"><b>미니 서버에 연결되지 않습니다.</b><p>서버 컴퓨터가 켜져 있는지, 이 태블릿이 같은 와이파이에 연결되어 있는지 확인해 주세요. 연결되면 자동으로 이어집니다.</p></div>'},10000);
+ const err=e=>toast('데이터 연결 오류 ('+((e&&e.code)||'')+')','bad');
+ S.db.doc('config/main').onSnapshot(s=>{S.config=s.exists?{...s.data()}:{};route()},err);
+ S.db.collection('tablets').onSnapshot(s=>{S.tablets=s.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>(a.no||99)-(b.no||99)||a.id.localeCompare(b.id));if(!s.metadata.fromCache){S.ready=true;clearTimeout(slow)}route()},err);
+ S.db.collection('menu').onSnapshot(s=>{S.menu=s.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>(a.sort||0)-(b.sort||0)||String(a.name).localeCompare(String(b.name)));route()},err);
+ cap('room').then(r=>{S.room=r;if(r)roomSetup();onlineUI()});
+ cap('assets').then(a=>{S.assets=a;if(S.role==='counter')rerender()});
+}
+function route(){
+ if(!S.ready&&!S.tablets.length)return;
+ const t=me();const role=t?(t.role==='counter'?'counter':'customer'):'setup';
+ if(role!==S.role){S.role=role;startRole()}else rerender();
+}
+function startRole(){
+ S.subs.forEach(u=>{try{u()}catch(e){}});S.subs=[];if(S.ordUnsub){S.ordUnsub();S.ordUnsub=null}
+ closeModal();
+ if(S.role==='customer'){subOrders();customerShell();S.myCalls=[];S.subs.push(S.db.collection('calls').where('tabletId','==',S.dev).where('status','==','open').onSnapshot(s=>{S.myCalls=s.docs.map(d=>({id:d.id,...d.data()}));callUI()},()=>{}))}
+ else if(S.role==='counter'){if(!S.adminOk){adminGate();presence();return}subOrders();subCounter();counterShell()}
+ else setupView();
+ if(S.dev&&me()&&!S.booted[S.dev]){S.booted[S.dev]=1;S.db.doc('tablets/'+S.dev).update({lastBoot:NOW()}).catch(()=>{})}
+ presence();
+}
+function subOrders(){
+ if(S.ordUnsub)S.ordUnsub();S.today=dkey();
+ let q=S.db.collection('orders').where('dateKey','in',[addDays(S.today,-1),S.today]);
+ if(S.role==='customer')q=q.where('tabletId','==',S.dev);
+ let first=true;
+ S.ordUnsub=q.onSnapshot(s=>{S.orders=s.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>(a.createdAt||0)-(b.createdAt||0));
+  if(S.role==='counter'&&!first){const n=s.docChanges().filter(c=>c.type==='added'&&c.doc.data().status==='new').length;if(n){beep();toast('새 주문 '+n+'건','new')}}
+  first=false;rerender()},()=>toast('주문 데이터 연결 오류','bad'));
+}
+function subCounter(){
+ const err=()=>toast('데이터 연결 오류','bad');
+ S.subs.push(S.db.collection('incidents').orderBy('at','desc').limit(300).onSnapshot(s=>{S.incidents=s.docs.map(d=>({id:d.id,...d.data()}));rerender()},err));
+ let cf=true;S.calls=[];S.subs.push(S.db.collection('calls').where('status','==','open').onSnapshot(s=>{S.calls=s.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>(a.at||0)-(b.at||0));if(!cf){const n=s.docChanges().filter(c=>c.type==='added').length;if(n){beep(660,3);toast('직원 호출: '+s.docChanges().filter(c=>c.type==='added').map(c=>{const x=c.doc.data();return x.place||x.tabletName}).join(', '),'new')}}cf=false;renderCalls()},err));
+ S.subs.push(S.db.collection('decisions').onSnapshot(s=>{S.decisions=s.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>(a.sort||0)-(b.sort||0));rerender()},err));
+}
+setInterval(()=>{if(S.db&&S.role&&S.role!=='setup'&&dkey()!==S.today)subOrders()},60000);
+function rerender(){if(S.role==='customer')customerParts();else if(S.role==='counter')counterTab();else if(S.role==='setup')setupView()}
+
+function adminGate(){
+ app.innerHTML=`<div class="dev"><h1>${S.pinSet?'관리 PIN을 입력하세요':'관리 PIN 만들기'}</h1><p class="fine">${S.pinSet?'주문받는 태블릿 화면은 관리 PIN을 아는 사람만 열 수 있습니다.':'처음 한 번만 정합니다. 숫자 4~6자리이며, 주문받는 태블릿과 고객 화면 숨김 메뉴에 쓰입니다.'}</p>
+ <form id="gateF" class="form"><label class="full">관리 PIN<input id="gp1" type="password" inputmode="numeric" maxlength="6" autocomplete="off"></label>${S.pinSet?'':'<label class="full">한 번 더 입력<input id="gp2" type="password" inputmode="numeric" maxlength="6" autocomplete="off"></label>'}<button class="btn" type="submit">확인</button></form>
+ <button class="btn ghost" data-act="devchange">다른 기기로 지정</button></div>`;
+ $('#gateF').addEventListener('submit',async e=>{e.preventDefault();const p=$('#gp1').value.trim();if(!/^\d{4,6}$/.test(p))return toast('숫자 4~6자리로 넣어 주세요','bad');
+  try{if(!S.pinSet){if(p!==$('#gp2').value.trim())return toast('두 번 입력한 PIN이 다릅니다','bad');await window.TOD_API('/api/auth/setup',{pin:p});S.pinSet=true}
+   else{const r=await window.TOD_API('/api/auth/check',{pin:p});if(!r.ok)return toast('PIN이 맞지 않습니다','bad')}
+   LS.set('tod.admin',p);S.adminOk=true;S.role=null;route()}
+  catch(err){if(err.code==='already_set'){S.pinSet=true;adminGate();toast('이미 PIN이 있습니다. 그 PIN을 입력해 주세요')}else toast(err.code==='rate_limited'?'여러 번 틀렸습니다. 5분 뒤 다시 해 주세요':'서버에 연결할 수 없습니다','bad')}})}
+function dl(name,text,type){const a=document.createElement('a');a.href=URL.createObjectURL(text instanceof Blob?text:new Blob([text],{type}));a.download=name;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},2000)}
+async function loadInfo(){try{S.info=await window.TOD_API('/api/info');if(S.tab==='settings')counterTab()}catch(e){}}
+
+/* ---------- 실시간 연결 상태 ---------- */
+function presence(){if(S.room&&S.dev)S.room.presence({dev:S.dev,role:S.role||''}).catch(()=>{})}
+function roomSetup(){
+ presence();
+ S.room.onPeers(ch=>{const now=new Set();ch.peers.forEach(p=>{const d=p.presence&&p.presence.dev;if(typeof d==='string')now.add(d)});
+  const prev=S.online;S.online=now;
+    onlineUI()},()=>{});
+ S.room.onConnection(c=>{S.roomConn=c;onlineUI()},()=>{});
+}
+function lost(d){clearTimeout(S.lostTimers[d]);const at=NOW();
+ S.lostTimers[d]=setTimeout(async()=>{if(S.online.has(d)||S.roomConn===false||S.role!=='counter')return;const t=S.tablets.find(x=>x.id===d);
+  const ref=S.db.collection('incidents').doc();S.openInc[d]=ref.id;
+  ref.set({tabletId:d,tabletName:t?t.name:d,kind:'연결 끊김',source:'auto',at,endAt:null,note:'주문받는 태블릿이 자동 감지',dateKey:dkey(new Date(at))}).catch(()=>{})},20000)}
+function back(d){clearTimeout(S.lostTimers[d]);const id=S.openInc[d];if(id){delete S.openInc[d];S.db.doc('incidents/'+id).update({endAt:NOW()}).catch(()=>{})}}
+addEventListener('offline',()=>{S.offlineSince=S.offlineSince||NOW();onlineUI()});
+addEventListener('online',()=>{const s=S.offlineSince;S.offlineSince=null;onlineUI();
+ if(s&&S.db&&S.dev)S.db.collection('incidents').add({tabletId:S.dev,tabletName:(me()||{}).name||S.dev,kind:'네트워크 끊김',source:'auto-self',at:s,endAt:NOW(),note:'태블릿이 스스로 감지 (재연결 후 기록)',dateKey:dkey(new Date(s))}).catch(()=>{})});
+const isUp=()=>navigator.onLine&&S.roomConn!==false;
+function onlineUI(){
+ const c=$('#conn');if(c){c.className='conn'+(isUp()?'':' off');c.innerHTML='<i></i>'+(isUp()?'연결됨':'연결 끊김 · 직원을 불러 주세요')}
+ const k=$('#kOnline');if(k){const cs=S.tablets.filter(t=>t.role!=='counter');k.textContent=S.room?'주문용 연결 '+cs.filter(t=>S.online.has(t.id)).length+'/'+cs.length:'연결 상태 확인 불가'}
+ if(S.role==='counter'&&S.tab==='tablets')counterTab();
+}
+
+/* ---------- 기기 지정 ---------- */
+function setupView(){
+ const list=S.tablets.map(t=>`<button class="devbtn" data-act="pickdev" data-id="${esc(t.id)}"><span>${esc(t.name||t.id)}<br><small class="fine">${t.role==='counter'?'주문받는 태블릿 (관리)':'주문용 (고객)'}${t.place?' · '+esc(t.place):''}</small></span><span class="tag">#${esc(t.id)}</span></button>`).join('');
+ app.innerHTML=`<div class="dev"><h1>이 태블릿은 어느 기기인가요?</h1><p class="fine">한 번 고르면 이 브라우저가 기억합니다. 주소 끝에 #t1 처럼 기기 번호를 붙여 열어도 됩니다.</p>${list||'<div class="empty">등록된 태블릿이 없습니다.</div>'}<button class="btn ghost" data-act="tnew">태블릿 추가</button></div>`;
+}
+
+/* ---------- 고객 화면 ---------- */
+/* 하단 동영상 재생: 올린 파일 + 유튜브 링크 */
+let ytReady=null;
+function loadYT(){if(window.YT&&window.YT.Player)return Promise.resolve();if(ytReady)return ytReady;
+ ytReady=new Promise((ok,no)=>{const t=setTimeout(()=>{ytReady=null;no()},10000);const prev=window.onYouTubeIframeAPIReady;window.onYouTubeIframeAPIReady=()=>{clearTimeout(t);if(prev)try{prev()}catch(e){}ok()};
+  const sc=document.createElement('script');sc.src='https://www.youtube.com/iframe_api';sc.onerror=()=>{clearTimeout(t);ytReady=null;sc.remove();no()};document.head.appendChild(sc)});return ytReady}
+function vNext(){const l=S.vlist||[];if(!l.length)return;if(l.length===1){const it=l[0];if(it.src){const v=$('#vid');if(v){v.currentTime=0;v.play().catch(()=>{})}}else if(S.ytp&&S.ytp.seekTo){S.ytp.seekTo(0);S.ytp.playVideo()}return}S.vidx=(S.vidx+1)%l.length;vPlay()}
+function vMsg(t){const e=$('#vempty');if(!e)return;S.vErr=!!t;e.textContent=t||'동영상이 등록되지 않았습니다';e.hidden=!t&&!!(S.vlist||[]).length}
+function vPlay(){const v=$('#vid'),yw=$('#ytwrap');if(!v)return;const l=S.vlist||[];clearTimeout(S.vRetry);vMsg('');
+ if(!l.length){v.removeAttribute('src');yw.hidden=true;try{S.ytp&&S.ytp.stopVideo&&S.ytp.stopVideo()}catch(e){}return}
+ let it=l[S.vidx%l.length];
+ if(it.yt&&S.ytDown&&NOW()-S.ytDown<60000&&l.some(x=>x.src)){while(!l[S.vidx%l.length].src)S.vidx=(S.vidx+1)%l.length;it=l[S.vidx]}
+ if(it.src){yw.hidden=true;try{S.ytp&&S.ytp.pauseVideo&&S.ytp.pauseVideo()}catch(e){}v.hidden=false;v.loop=l.length===1;v.src=it.src;v.play().catch(()=>{});return}
+ v.pause();v.removeAttribute('src');v.hidden=true;yw.hidden=false;const gen=S.vGen=(S.vGen||0)+1;
+ loadYT().then(()=>{S.ytDown=0;if(gen!==S.vGen)return;
+  if(S.ytp&&S.ytp.loadVideoById){S.ytp.mute();S.ytp.loadVideoById(it.yt);return}
+  S.ytp=new YT.Player('yt',{width:'100%',height:'100%',videoId:it.yt,playerVars:{autoplay:1,mute:1,controls:0,disablekb:1,fs:0,rel:0,iv_load_policy:3,playsinline:1,origin:location.origin},
+   events:{onReady:e=>{e.target.mute();e.target.playVideo()},onStateChange:e=>{if(e.data===0)vNext()},onError:()=>{vMsg('이 유튜브 영상은 재생할 수 없습니다 (퍼가기 금지 또는 삭제)');S.vRetry=setTimeout(()=>{if((S.vlist||[]).length>1)vNext();else vMsg('이 유튜브 영상은 재생할 수 없습니다 (퍼가기 금지 또는 삭제)')},4000)}}})})
+ .catch(()=>{S.ytDown=NOW();vMsg('유튜브에 연결할 수 없습니다 (태블릿 인터넷 확인)');S.vRetry=setTimeout(()=>{if((S.vlist||[]).length>1)vNext();else vPlay()},l.length>1?3000:30000)})}
+function customerShell(){
+ app.innerHTML=`<div class="cust"><header class="chead"><button class="logo" data-act="logo" aria-label="매장 메뉴">${esc(S.config.storeName||'주문')}</button><div class="ctitle" id="ctitle"></div><span id="ctest"></span><span id="conn" class="conn"></span><button class="hbtn call" data-act="call" id="callBtn">직원 호출</button><button class="hbtn" data-act="myorders">주문 내역</button></header>
+ <div class="cbody"><nav class="cats" id="ccats" aria-label="메뉴 분류"></nav><section class="grid" id="cgrid"></section><aside class="cart" id="ccart"></aside></div>
+ <div class="vid"><video id="vid" muted autoplay playsinline></video><div id="ytwrap" hidden><div id="yt"></div></div><div class="vempty" id="vempty">동영상이 등록되지 않았습니다</div></div></div>`;
+ const v=$('#vid');
+ v.addEventListener('ended',()=>vNext());
+ v.addEventListener('error',()=>{if(v.getAttribute('src'))setTimeout(vNext,3000)});
+ customerParts();onlineUI();
+}
+function customerParts(){
+ const t=me();if(!t||!$('#cgrid'))return;
+ document.documentElement.style.setProperty('--vidh',(Number(S.config.videoPct)||40)+'vh');
+ $('#ctitle').textContent=t.place||t.name||'';
+ $('#ctest').innerHTML=t.testMode?'<span class="cbadge">테스트 모드 · 실제 주문 아님</span>':'';
+ const lg=$('.logo');if(lg)lg.textContent=S.config.storeName||'주문';
+ const vis=S.menu.filter(m=>!m.hidden);const cs=cats().filter(c=>vis.some(m=>m.cat===c));
+ if(!cs.includes(S.cat))S.cat=cs[0]||null;
+ $('#ccats').innerHTML=cs.map(c=>`<button class="${c===S.cat?'on':''}" data-act="cat" data-c="${esc(c)}">${esc(c)}</button>`).join('');
+ const items=vis.filter(m=>m.cat===S.cat);
+ $('#cgrid').innerHTML=items.length?items.map(m=>`<button class="mcard${m.soldOut?' so':''}" data-act="add" data-id="${esc(m.id)}"${m.soldOut?' disabled':''}>${blob(m.img)?`<img src="${blob(m.img)}" alt="">`:`<span class="ph">${esc(String(m.name||'?').slice(0,1))}</span>`}<span class="mn">${esc(m.name)}</span>${m.desc?`<span class="md">${esc(m.desc)}</span>`:''}<span class="mp">${won(m.price)}</span>${(m.groups||[]).length?'<span class="mo">옵션</span>':''}${m.soldOut?'<span class="stamp">품절</span>':''}</button>`).join(''):'<div class="empty">메뉴 준비 중입니다</div>';
+ renderCart();
+ const list=S.localVid?[{src:S.localVid}]:vids().map(x=>x.yt?{yt:x.yt}:{src:blob(x.id)});const sig=JSON.stringify(list);const v=$('#vid');
+ if(v&&v.dataset.sig!==sig){v.dataset.sig=sig;S.vlist=list;S.vidx=0;vPlay()}
+ if(!S.vErr)$('#vempty').hidden=!!list.length;
+}
+function lineCalc(l){const m=menuById(l.mid);if(!m)return{ok:false,why:'메뉴가 삭제됨',unit:0,name:l.name};
+ if(m.soldOut||m.hidden)return{ok:false,why:'품절',unit:0,name:m.name};let unit=Number(m.price)||0;const opts=[];
+ for(const o of l.opts){const g=(m.groups||[]).find(x=>x.name===o.g);const c=g&&(g.choices||[]).find(x=>x.name===o.n);if(!c)return{ok:false,why:'옵션이 바뀜',unit:0,name:m.name};unit+=Number(c.price)||0;opts.push({g:o.g,n:o.n,p:Number(c.price)||0})}
+ return{ok:true,unit,name:m.name,opts}}
+function renderCart(){
+ const el=$('#ccart');if(!el)return;const calc=S.cart.map(lineCalc);const total=calc.reduce((s,c,i)=>s+c.unit*S.cart[i].qty,0);const bad=calc.some(c=>!c.ok);const cnt=S.cart.reduce((s,l)=>s+l.qty,0);
+ el.innerHTML=`<div class="carth"><b>장바구니</b><span>${cnt}개</span>${S.cart.length?'<button class="link" data-act="cartclear">비우기</button>':''}</div>
+ <div class="lines">${S.cart.length?S.cart.map((l,i)=>{const c=calc[i];return `<div class="line"><div><b>${esc(c.name)}</b>${l.opts.length?`<small>${esc(l.opts.map(o=>o.n).join(', '))}</small>`:''}${c.ok?'':`<em>${esc(c.why)} · 빼 주세요</em>`}</div><b class="lp">${c.ok?won(c.unit*l.qty):'-'}</b><div class="qty"><button data-act="cq" data-i="${i}" data-d="-1" aria-label="빼기">−</button><span>${l.qty}</span><button data-act="cq" data-i="${i}" data-d="1" aria-label="더하기">+</button></div></div>`}).join(''):'<div class="empty">메뉴를 눌러 담아 주세요</div>'}</div>
+ <div class="cartf"><div class="sum"><span>합계</span><b>${won(total)}</b></div><button class="cta" data-act="review"${!S.cart.length||bad?' disabled':''}>주문하기</button><p class="fine">결제는 이용 후 카운터에서 합니다 (후불)</p></div>`;
+}
+function optModal(){const c=S.mctx,m=menuById(c.mid);if(!m){closeModal();return}
+ let unit=Number(m.price)||0;let missing=false;
+ const gs=(m.groups||[]).map((g,gi)=>{const sel=c.sel[gi]||[];if(g.req&&!sel.length)missing=true;sel.forEach(ci=>{unit+=Number((g.choices[ci]||{}).price)||0});
+  return `<fieldset><legend>${esc(g.name)} ${g.req?'<span class="tag unpaid">필수</span>':'<span class="tag">선택</span>'}${g.multi?' <small class="fine">여러 개 고를 수 있어요</small>':''}</legend><div class="chips">${(g.choices||[]).map((ch,ci)=>`<button class="chip${sel.includes(ci)?' on':''}" data-act="optpick" data-g="${gi}" data-c="${ci}">${esc(ch.name)}${Number(ch.price)?' +'+won(ch.price):''}</button>`).join('')}</div></fieldset>`}).join('');
+ openModal(`<h2>${esc(m.name)}</h2>${m.desc?`<p class="fine">${esc(m.desc)}</p>`:''}${gs}<div class="qty">수량 <button data-act="optqty" data-d="-1">−</button><span>${c.qty}</span><button data-act="optqty" data-d="1">+</button></div><div class="mfoot"><button class="btn ghost" data-act="close">닫기</button><button class="cta" data-act="optadd"${missing?' disabled':''}>${won(unit*c.qty)} 담기</button></div>`,'big');
+}
+function addLine(mid,opts,qty){const k=mid+'|'+JSON.stringify(opts);const ex=S.cart.find(l=>l.k===k);if(ex)ex.qty+=qty;else S.cart.push({k,mid,name:(menuById(mid)||{}).name||'',opts,qty});S.pendingId=null;renderCart()}
+function reviewModal(err){
+ const calc=S.cart.map(lineCalc);const total=calc.reduce((s,c,i)=>s+c.unit*S.cart[i].qty,0);const t=me()||{};
+ S.mctx={type:'review',lock:S.sending};
+ openModal(`<h2>주문 내용을 확인해 주세요</h2><div class="review"><ul>${S.cart.map((l,i)=>`<li><span><b>${esc(calc[i].name)}</b>${l.opts.length?`<small>${esc(l.opts.map(o=>o.n).join(', '))}</small>`:''}</span><span>× ${l.qty}</span><b>${won(calc[i].unit*l.qty)}</b></li>`).join('')}</ul></div>
+ <div class="bigsum"><span>합계</span><span>${won(total)}</span></div>
+ <div class="notice">${esc(t.place||t.name||'')} 자리로 주문합니다. 결제는 이용 후 카운터에서 합니다 (후불).${t.testMode?' <b>테스트 모드: 실제 주문으로 집계되지 않습니다.</b>':''}</div>
+ ${err?'<div class="alert">주문을 보내지 못했습니다. 다시 눌러 보시고, 계속 안 되면 직원을 불러 주세요.</div>':''}
+ <div class="mfoot"><button class="btn ghost" data-act="close"${S.sending?' disabled':''}>다시 고르기</button><button class="cta" data-act="send"${S.sending||calc.some(c=>!c.ok)?' disabled':''}>${S.sending?'보내는 중…':'이대로 주문하기'}</button></div>`,'big');
+}
+async function sendOrder(){
+ if(S.sending)return;const t=me();if(!t)return;const calc=S.cart.map(lineCalc);if(!S.cart.length||calc.some(c=>!c.ok))return reviewModal();
+ if(!navigator.onLine){toast('인터넷 연결이 끊겨 주문을 보낼 수 없습니다. 직원을 불러 주세요','bad');return}
+ S.sending=true;reviewModal();const now=NOW();
+ const items=S.cart.map((l,i)=>({mid:l.mid,name:calc[i].name,opts:calc[i].opts,unit:calc[i].unit,qty:l.qty}));
+ const id=S.pendingId||('o'+now.toString(36)+'-'+S.dev);S.pendingId=id;
+ const data={tabletId:S.dev,tabletName:t.name||'',place:t.place||'',items,total:items.reduce((s,x)=>s+x.unit*x.qty,0),status:'new',pay:'unpaid',payMethod:'',test:!!t.testMode,dateKey:dkey(),createdAt:now,updatedAt:now,memo:'',log:[{at:now,t:'주문 (고객 화면)'}]};
+ try{await timeout(S.db.doc('orders/'+id).set(data),12000);S.pendingId=null;S.cart=[];S.sending=false;renderCart();
+  S.mctx={type:'done'};openModal(`<h2>주문이 들어갔습니다</h2><div class="notice">직원이 확인 후 준비해 드립니다. 결제는 이용 후 카운터에서 해 주세요.</div><div class="mfoot"><button class="cta" data-act="close">확인</button></div>`,'big');
+  setTimeout(()=>{if(S.mctx&&S.mctx.type==='done')closeModal()},6000)}
+ catch(e){S.sending=false;reviewModal(true);S.db.collection('incidents').add({tabletId:S.dev,tabletName:t.name||'',kind:'주문 전송 실패',source:'auto-self',at:now,endAt:NOW(),note:'오류: '+((e&&e.code)||'알 수 없음'),dateKey:dkey()}).catch(()=>{})}
+}
+function myOrders(){
+ const os=S.orders.filter(o=>o.status!=='canceled');const unpaid=os.filter(o=>o.pay!=='paid').reduce((s,o)=>s+(o.total||0),0);
+ S.mctx={type:'mine'};
+ openModal(`<h2>우리 자리 주문 내역</h2>${os.length?`<div class="review"><ul>${os.map(o=>`<li><span><b>${hm(o.createdAt)}</b><small>${esc((o.items||[]).map(i=>i.name+' ×'+i.qty).join(', '))}</small></span><span class="tag">${esc(ST[o.status]||o.status)}</span><b>${won(o.total)}</b></li>`).join('')}</ul></div>`:'<div class="empty">아직 주문이 없습니다</div>'}
+ <div class="bigsum"><span>결제할 금액</span><span>${won(unpaid)}</span></div><p class="fine">결제는 이용 후 카운터에서 합니다. 취소·변경은 직원에게 말씀해 주세요.</p><div class="mfoot"><button class="cta" data-act="close">닫기</button></div>`,'big');
+}
+function hiddenMenu(){S.mctx={type:'hidden'};
+ openModal(`<h2>기기 메뉴</h2>${S.pinSet?'':'<div class="alert">관리 PIN이 아직 없어 누구나 이 메뉴를 열 수 있습니다. 주문받는 태블릿에서 PIN을 먼저 만들어 주세요.</div>'}
+ <button class="devbtn" data-act="fs">전체화면으로</button>
+ <label class="devbtn">이 기기에서만 동영상 파일 고르기<input type="file" accept="video/*" data-up="localvid" hidden></label>
+ <button class="devbtn" data-act="devchange">이 태블릿 역할 다시 지정</button><div class="mfoot"><button class="btn ghost" data-act="close">닫기</button></div>`)}
+function pinModal(){S.mctx=S.mctx&&S.mctx.type==='pin'?S.mctx:{type:'pin',v:''};
+ openModal(`<h2>PIN 입력</h2><div class="bigsum"><span>${'●'.repeat(S.mctx.v.length)||'&nbsp;'}</span></div><div class="pinpad">${[1,2,3,4,5,6,7,8,9,'지움',0,'확인'].map(k=>`<button data-act="pin" data-k="${k}">${k}</button>`).join('')}</div><div class="mfoot"><button class="btn ghost" data-act="close">닫기</button></div>`)}
+
+/* ---------- 카운터 화면 ---------- */
+const TABS=[['orders','주문 현황'],['settle','후불 정산'],['menu','메뉴 관리'],['tablets','태블릿'],['sales','내역·매출'],['incidents','장애 기록'],['check','확인 필요'],['settings','설정']];
+function counterShell(){
+ app.innerHTML=`<div class="ctr"><header class="khead"><h1>${esc(S.config.storeName||'테이블 오더')} · 주문받는 태블릿</h1><span class="pill" id="kOnline"></span><span class="pill">${esc(S.today)}</span><button class="btn sm" data-act="beep" id="beepBtn">${S.beep?'알림음 켜짐':'알림음 켜기'}</button></header><div class="calls" id="kcalls" hidden></div><nav class="ktabs scroll" id="ktabs"></nav><main id="kmain"></main></div>`;
+ counterTab();onlineUI();
+ $('#kmain').addEventListener('focusout',()=>setTimeout(()=>{if(S.pending&&!inEdit()){S.pending=false;counterTab()}},0));
+}
+const inEdit=()=>{const a=document.activeElement;if(!a||!$('#kmain')||!$('#kmain').contains(a))return false;if(a.tagName==='INPUT')return !/^(checkbox|radio|range|file|button|submit|date)$/.test(a.type);return /^(TEXTAREA|SELECT)$/.test(a.tagName)};
+function counterTab(){
+ const k=$('#kmain');if(!k)return;
+ const nNew=S.orders.filter(o=>o.status==='new'&&(S.showTest||!o.test)).length;const nDec=S.decisions.filter(d=>d.status!=='done').length;const nInc=S.incidents.filter(i=>!i.endAt).length;
+ $('#ktabs').innerHTML=TABS.map(([id,l])=>`<button class="${S.tab===id?'on':''}" data-act="tab" data-t="${id}">${l}${id==='orders'&&nNew?`<span class="n">${nNew}</span>`:''}${id==='check'&&nDec?`<span class="n w">${nDec}</span>`:''}${id==='incidents'&&nInc?`<span class="n w">${nInc}</span>`:''}</button>`).join('');
+ if(inEdit()){S.pending=true;return}
+ k.innerHTML=({orders:vOrders,settle:vSettle,menu:vMenu,tablets:vTablets,sales:vSales,incidents:vIncidents,check:vCheck,settings:vSettings})[S.tab]();
+ if(S.mctx&&S.mctx.type==='pay')payModal();
+ renderCalls();
+}
+function orderNo(o){if(o.test)return 'T';const same=S.orders.filter(x=>x.dateKey===o.dateKey&&!x.test);return String(same.findIndex(x=>x.id===o.id)+1)}
+function ticket(o){const btn=(a,l,c)=>`<button class="btn sm ${c||''}" data-act="${a}" data-id="${esc(o.id)}">${l}</button>`;
+ const acts={new:btn('oacc','접수')+btn('oedit','수정','ghost')+btn('ocan','취소','ghost'),accepted:btn('odone','전달 완료')+btn('oedit','수정','ghost')+btn('ocan','취소','ghost'),done:btn('oback','접수로 되돌리기','ghost'),canceled:''}[o.status]||'';
+ return `<article class="ticket st-${esc(o.status)}"><header><b>#${orderNo(o)}</b><span>${esc(o.place||o.tabletName||o.tabletId)}</span>${o.test?'<span class="tag test">테스트</span>':''}<time>${o.dateKey!==S.today?'어제 ':''}${hm(o.createdAt)}</time></header>
+ <ul>${(o.items||[]).map(i=>`<li><span>${esc(i.name)}${(i.opts||[]).length?` <small>(${esc(i.opts.map(x=>x.n).join(', '))})</small>`:''}</span><b>×${i.qty}</b></li>`).join('')}</ul>
+ ${o.memo?`<div class="memo">${esc(o.memo)}</div>`:''}${o.status==='canceled'&&o.cancelReason?`<div class="memo">취소 사유: ${esc(o.cancelReason)}</div>`:''}
+ <footer><span class="tag ${o.pay==='paid'?'paid':'unpaid'}">${o.pay==='paid'?'결제 완료'+(o.payMethod?' · '+esc(o.payMethod):''):'미결제'}</span><b>${won(o.total)}</b></footer><div class="acts">${acts}</div></article>`}
+function vOrders(){
+ const os=S.orders.filter(o=>S.showTest||!o.test);const by=s=>os.filter(o=>o.status===s);
+ const done=by('done').slice(-20).reverse(),can=by('canceled').reverse();
+ return `<div class="bar"><h2>주문 현황</h2><label class="ck"><input type="checkbox" data-act="showtest"${S.showTest?' checked':''}> 테스트 주문 보기</label></div>
+ <div class="board"><section class="col"><h3>신규 <span>${by('new').length}</span></h3>${by('new').map(ticket).join('')||'<div class="empty">새 주문 없음</div>'}</section>
+ <section class="col"><h3>접수 <span>${by('accepted').length}</span></h3>${by('accepted').map(ticket).join('')||'<div class="empty">없음</div>'}</section>
+ <section class="col"><h3>전달 완료 (최근 20) <span>${by('done').length}</span></h3>${done.map(ticket).join('')||'<div class="empty">없음</div>'}</section></div>
+ ${can.length?`<details style="margin-top:16px"><summary>취소된 주문 ${can.length}건</summary><div class="cards">${can.map(ticket).join('')}</div></details>`:''}
+ <p class="fine">주문 상태 단계(신규 → 접수 → 전달 완료)는 임시 구성입니다 ${NEED}. 어제·오늘 주문이 표시됩니다.</p>`}
+function unpaidOf(tid){return S.orders.filter(o=>o.tabletId===tid&&!o.test&&o.status!=='canceled'&&o.pay!=='paid')}
+function vSettle(){
+ const cs=S.tablets.filter(t=>t.role!=='counter');
+ return `<div class="bar"><h2>후불 정산</h2></div><div class="cards">${cs.map(t=>{const u=unpaidOf(t.id);const sum=u.reduce((s,o)=>s+(o.total||0),0);
+  return `<button class="panel" style="text-align:left" data-act="settle" data-id="${esc(t.id)}"><h3>${esc(t.place||t.name)}</h3><span class="fine">${esc(t.name)}</span><b style="font-size:26px">${won(sum)}</b><span>${u.length?'미결제 '+u.length+'건':'미결제 없음'}</span></button>`}).join('')||'<div class="empty">주문용 태블릿이 없습니다</div>'}</div>
+ <p class="fine">실제 결제는 기존 카드단말기·현금으로 받고, 여기서는 결제 완료를 기록합니다. 카드단말기(VAN) 연동 여부 ${NEED} · 결제수단 목록 ${NEED}</p>`}
+function payModal(){const c=S.mctx;const t=S.tablets.find(x=>x.id===c.tid)||{};const u=unpaidOf(c.tid);
+ c.sel=new Set([...c.sel].filter(id=>u.some(o=>o.id===id)));const sum=u.filter(o=>c.sel.has(o.id)).reduce((s,o)=>s+(o.total||0),0);
+ const paid=S.orders.filter(o=>o.tabletId===c.tid&&!o.test&&o.pay==='paid'&&o.status!=='canceled');
+ openModal(`<h2>${esc(t.place||t.name||'')} 정산</h2>${u.length?`<div class="review"><ul>${u.map(o=>`<li><label class="ck"><input type="checkbox" data-act="paysel" data-id="${esc(o.id)}"${c.sel.has(o.id)?' checked':''}> <span><b>#${orderNo(o)} · ${hm(o.createdAt)}</b><small>${esc((o.items||[]).map(i=>i.name+' ×'+i.qty).join(', '))}</small></span></label><span class="tag">${esc(ST[o.status])}</span><b>${won(o.total)}</b></li>`).join('')}</ul></div>`:'<div class="empty">미결제 주문이 없습니다</div>'}
+ <div><b>결제 수단</b> ${NEED}<div class="chips" style="margin-top:6px">${METHODS.map(m=>`<button class="chip${c.method===m?' on':''}" data-act="paymeth" data-m="${m}">${m}</button>`).join('')}</div></div>
+ <div class="bigsum"><span>선택 ${c.sel.size}건</span><span>${won(sum)}</span></div>
+ <div class="mfoot"><button class="btn ghost" data-act="close">닫기</button><button class="btn" data-act="paygo"${!c.sel.size||!c.method?' disabled':''}>결제 완료로 기록</button></div>
+ ${paid.length?`<details><summary>결제 완료된 주문 ${paid.length}건</summary><div class="review"><ul>${paid.map(o=>`<li><span>#${orderNo(o)} · ${hm(o.createdAt)}<small>${esc(o.payMethod||'')} · ${hm(o.paidAt)}</small></span><b>${won(o.total)}</b><button class="btn sm ghost" data-act="payundo" data-id="${esc(o.id)}">미결제로 되돌리기</button></li>`).join('')}</ul></div></details>`:''}`)}
+function editModal(){const c=S.mctx;const total=c.items.reduce((s,i)=>s+i.unit*i.qty,0);
+ openModal(`<h2>주문 수정</h2><div class="review"><ul>${c.items.map((i,n)=>`<li><span><b>${esc(i.name)}</b>${(i.opts||[]).length?`<small>${esc(i.opts.map(x=>x.n).join(', '))}</small>`:''}</span><div class="qty" style="grid-column:auto"><button data-act="eq" data-i="${n}" data-d="-1">−</button><span>${i.qty}</span><button data-act="eq" data-i="${n}" data-d="1">+</button></div><b>${won(i.unit*i.qty)}</b></li>`).join('')||'<li>항목이 없습니다. 비우려면 주문을 취소하세요.</li>'}</ul></div>
+ <div class="form"><label>메뉴 추가 (기본 가격, 옵션 없음)<select id="eadd"><option value="">선택</option>${S.menu.filter(m=>!m.soldOut).map(m=>`<option value="${esc(m.id)}">${esc(m.name)} · ${won(m.price)}</option>`).join('')}</select></label><label>&nbsp;<button class="btn ghost" data-act="eadd">추가</button></label><label class="full">메모<input data-f="memo" value="${esc(c.memo)}"></label></div>
+ <div class="bigsum"><span>합계</span><span>${won(total)}</span></div><div class="mfoot"><button class="btn ghost" data-act="close">닫기</button><button class="btn" data-act="esave"${c.items.length?'':' disabled'}>저장</button></div>`)}
+function cancelModal(o){S.mctx={type:'cancel',id:o.id,reason:''};
+ openModal(`<h2>주문 취소</h2><p>#${orderNo(o)} · ${esc(o.place||o.tabletName)} · ${won(o.total)}</p><div class="form"><label class="full">취소 사유<input data-f="reason" placeholder="예: 고객 요청, 재료 소진"></label></div><div class="mfoot"><button class="btn ghost" data-act="close">닫기</button><button class="btn bad" data-act="ocango">취소하기</button></div>`)}
+async function updOrder(o,patch,what){const now=NOW();return w('orders/'+o.id,r=>r.update({...patch,updatedAt:now,log:[...(o.log||[]).slice(-30),{at:now,t:what}]}))}
+
+/* 메뉴 관리 */
+function vMenu(){
+ const cs=cats();const uncat=S.menu.filter(m=>!m.cat);
+ const row=m=>`<div class="mrow">${blob(m.img)?`<img src="${blob(m.img)}" alt="">`:`<span class="ph">${esc(String(m.name||'?').slice(0,1))}</span>`}<div><b>${esc(m.name)}</b> ${m.soldOut?'<span class="tag off">품절</span>':''}${m.hidden?' <span class="tag">숨김</span>':''}<div class="fine">${won(m.price)}${(m.groups||[]).length?' · 옵션 '+m.groups.length+'개':''}</div></div><div class="acts"><button class="btn sm ${m.soldOut?'':'ghost'}" data-act="msold" data-id="${esc(m.id)}">${m.soldOut?'품절 해제':'품절'}</button><button class="btn sm ghost" data-act="mhide" data-id="${esc(m.id)}">${m.hidden?'보이기':'숨기기'}</button><button class="btn sm ghost" data-act="medit" data-id="${esc(m.id)}">수정</button><button class="btn sm ghost" data-act="mdel" data-id="${esc(m.id)}">삭제</button></div></div>`;
+ return `<div class="bar"><h2>메뉴 관리</h2><button class="btn" data-act="mnew">메뉴 추가</button></div>
+ <div class="panel" style="margin-bottom:16px"><h3>분류</h3><div class="catrow">${(S.config.categories||[]).map((c,i)=>`<span class="tag">${esc(c)}<button data-act="catup" data-i="${i}" aria-label="앞으로">‹</button><button data-act="catdn" data-i="${i}" aria-label="뒤로">›</button><button data-act="catdel" data-i="${i}" aria-label="삭제">×</button></span>`).join('')||'<span class="fine">분류가 없습니다</span>'}</div>
+ <div class="catrow"><input id="newCat" placeholder="새 분류 이름" style="max-width:260px"><button class="btn ghost" data-act="catadd">분류 추가</button></div></div>
+ ${S.menu.length?'':`<div class="panel"><b>등록된 메뉴가 없습니다.</b><span class="fine">메뉴·옵션·가격 ${NEED} — 실제 메뉴판을 기준으로 입력해 주세요. 여기서 바꾸면 모든 주문용 태블릿에 바로 반영됩니다.</span></div>`}
+ ${cs.map(c=>{const ms=S.menu.filter(m=>m.cat===c);return ms.length?`<div class="panel" style="margin-bottom:12px;padding:6px"><h3 style="padding:10px">${esc(c)} <span class="fine">${ms.length}</span></h3>${ms.map(row).join('')}</div>`:''}).join('')}
+ ${uncat.length?`<div class="panel"><h3>분류 없음</h3>${uncat.map(row).join('')}</div>`:''}`}
+function menuModal(){const c=S.mctx,m=c.m;
+ openModal(`<h2>${c.id?'메뉴 수정':'메뉴 추가'}</h2><div class="form">
+ <label>이름<input data-f="name" value="${esc(m.name)}"></label>
+ <label>분류<select data-f="cat"><option value="">선택</option>${cats().map(x=>`<option${x===m.cat?' selected':''}>${esc(x)}</option>`).join('')}</select></label>
+ <label>가격 (원)<input data-f="price" data-num inputmode="numeric" value="${esc(m.price)}"></label>
+ <label>정렬 순서<input data-f="sort" data-num inputmode="numeric" value="${esc(m.sort||0)}"></label>
+ <label class="full">설명<input data-f="desc" value="${esc(m.desc)}"></label>
+ <label class="ck"><input type="checkbox" data-f="soldOut"${m.soldOut?' checked':''}> 품절</label><label class="ck"><input type="checkbox" data-f="hidden"${m.hidden?' checked':''}> 고객 화면에서 숨기기</label>
+ <div class="full" style="grid-column:1/-1;display:flex;gap:12px;align-items:center">${blob(m.img)?`<img src="${blob(m.img)}" alt="" style="width:72px;height:72px;object-fit:cover;border-radius:10px">`:''}${S.assets?`<label class="btn ghost">사진 올리기<input type="file" accept="image/png,image/jpeg,image/webp,image/gif" data-up="menuimg" hidden></label>`:'<span class="fine">사진 올리기 권한 없음</span>'}${m.img?'<button class="link" data-act="mimgrm">사진 빼기</button>':''}</div></div>
+ <h3 style="margin:8px 0 0">옵션</h3>${(m.groups||[]).map((g,gi)=>`<div class="grp"><div class="crow"><input data-p="${gi}.name" value="${esc(g.name)}" placeholder="옵션 묶음 이름 (예: 맵기)"><span></span><button class="btn sm ghost" data-act="mgrm" data-g="${gi}">묶음 삭제</button></div>
+ <div class="catrow"><label class="ck"><input type="checkbox" data-p="${gi}.req"${g.req?' checked':''}> 필수</label><label class="ck"><input type="checkbox" data-p="${gi}.multi"${g.multi?' checked':''}> 여러 개 선택</label></div>
+ ${(g.choices||[]).map((ch,ci)=>`<div class="crow"><input data-p="${gi}.c.${ci}.name" value="${esc(ch.name)}" placeholder="선택지"><input data-p="${gi}.c.${ci}.price" inputmode="numeric" value="${esc(ch.price||0)}" placeholder="추가금"><button class="btn sm ghost" data-act="mcrm" data-g="${gi}" data-c="${ci}">×</button></div>`).join('')}
+ <button class="btn sm ghost" data-act="mcadd" data-g="${gi}">선택지 추가</button></div>`).join('')}
+ <button class="btn ghost" data-act="mgadd">옵션 묶음 추가</button>
+ <div class="mfoot"><button class="btn ghost" data-act="close">닫기</button><button class="btn" data-act="msave">저장</button></div>`)}
+
+/* 태블릿 */
+function vTablets(){
+ return `<div class="bar"><h2>태블릿 ${S.tablets.length}대</h2><button class="btn" data-act="tnew">태블릿 추가</button></div>
+ <table class="stack"><thead><tr><th>번호</th><th>이름</th><th>역할</th><th>위치(룸)</th><th>기종·OS</th><th>연결</th><th>마지막 부팅</th><th>테스트 모드</th><th>관리</th></tr></thead><tbody>${S.tablets.map(t=>`<tr><td>#${esc(t.id)}${t.id===S.dev?' <span class="tag">이 기기</span>':''}</td><td><b>${esc(t.name)}</b>${t.note?`<div class="fine">${esc(t.note)}</div>`:''}</td><td>${t.role==='counter'?'주문받는 (관리)':'주문용 (고객)'}</td><td>${t.place?esc(t.place):NEED}</td><td>${t.model?esc(t.model):NEED}</td><td>${S.room?(S.online.has(t.id)?'<span class="tag on">연결됨</span>':'<span class="tag off">끊김</span>'):'-'}</td><td>${dt(t.lastBoot)}</td><td><button class="btn sm ${t.testMode?'':'ghost'}" data-act="ttest" data-id="${esc(t.id)}">${t.testMode?'켜짐 (끄기)':'꺼짐 (켜기)'}</button></td><td><button class="btn sm ghost" data-act="tedit" data-id="${esc(t.id)}">수정</button> <button class="btn sm ghost" data-act="tdel" data-id="${esc(t.id)}">삭제</button></td></tr>`).join('')}</tbody></table>
+ <p class="fine">각 태블릿에서 이 페이지를 열고 해당 기기를 고르거나, 주소 끝에 #t1 같은 번호를 붙여 즐겨찾기 하세요. 연결 표시는 지금 페이지가 열려 있는지를 뜻합니다. 테스트 모드 태블릿의 주문은 매출에서 빠집니다.</p>`}
+function tabModal(){const t=S.mctx.t;
+ openModal(`<h2>${S.mctx.id?'태블릿 수정':'태블릿 추가'}</h2><div class="form"><label>표시 번호<input data-f="no" data-num inputmode="numeric" value="${esc(t.no||'')}"></label><label>이름<input data-f="name" value="${esc(t.name)}"></label>
+ <label>역할<select data-f="role"><option value="customer"${t.role!=='counter'?' selected':''}>주문용 (고객)</option><option value="counter"${t.role==='counter'?' selected':''}>주문받는 (관리)</option></select></label>
+ <label>위치·룸 이름<input data-f="place" value="${esc(t.place)}" placeholder="예: 1번 룸"></label><label>기종·OS·화면 방향<input data-f="model" value="${esc(t.model)}"></label><label class="full">메모<input data-f="note" value="${esc(t.note)}"></label></div>
+ <div class="mfoot"><button class="btn ghost" data-act="close">닫기</button><button class="btn" data-act="tsave">저장</button></div>`)}
+
+/* 내역·매출 */
+function stats(rows){const r={n:0,total:0,paid:0,unpaid:0,cn:0,camt:0,byTab:{},byMenu:{},byMeth:{},byDay:{}};
+ rows.forEach(o=>{if(o.test&&!S.salesTest)return;const d=r.byDay[o.dateKey]=r.byDay[o.dateKey]||{n:0,paid:0,unpaid:0,cn:0};
+  if(o.status==='canceled'){r.cn++;r.camt+=o.total||0;d.cn++;return}
+  r.n++;r.total+=o.total||0;d.n++;const tb=r.byTab[o.tabletName||o.tabletId]=r.byTab[o.tabletName||o.tabletId]||{n:0,amt:0,paid:0};tb.n++;tb.amt+=o.total||0;
+  if(o.pay==='paid'){r.paid+=o.total||0;d.paid+=o.total||0;tb.paid+=o.total||0;r.byMeth[o.payMethod||'미기재']=(r.byMeth[o.payMethod||'미기재']||0)+(o.total||0)}else{r.unpaid+=o.total||0;d.unpaid+=o.total||0}
+  (o.items||[]).forEach(i=>{const m=r.byMenu[i.name]=r.byMenu[i.name]||{q:0,amt:0};m.q+=i.qty;m.amt+=i.unit*i.qty})});return r}
+function salesRows(){if(S.salesMode==='day'&&(S.salesDate===S.today||S.salesDate===addDays(S.today,-1)))return S.orders.filter(o=>o.dateKey===S.salesDate);return S.salesData&&S.salesData.rows||null}
+async function loadSales(){const c=S.db.collection('orders');const q=S.salesMode==='day'?c.where('dateKey','==',S.salesDate):c.where('dateKey','>=',S.salesFrom).where('dateKey','<=',S.salesTo);
+ S.salesData={loading:true};counterTab();try{const s=await timeout(q.get(),15000);S.salesData={rows:s.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>(a.createdAt||0)-(b.createdAt||0))}}catch(e){S.salesData={err:true}}counterTab()}
+function vSales(){
+ const rows=salesRows();const ctl=`<div class="bar"><h2>내역·매출</h2><div class="catrow"><button class="btn sm ${S.salesMode==='day'?'':'ghost'}" data-act="smode" data-m="day">일자별</button><button class="btn sm ${S.salesMode==='range'?'':'ghost'}" data-act="smode" data-m="range">기간별</button>
+ ${S.salesMode==='day'?`<input type="date" id="sDate" value="${S.salesDate}" style="width:auto">`:`<input type="date" id="sFrom" value="${S.salesFrom}" style="width:auto"> ~ <input type="date" id="sTo" value="${S.salesTo}" style="width:auto">`}<button class="btn sm ghost" data-act="sload">조회</button><label class="ck"><input type="checkbox" data-act="stest"${S.salesTest?' checked':''}> 테스트 주문 포함</label></div></div>`;
+ if(!rows)return ctl+(S.salesData&&S.salesData.loading?'<div class="empty">불러오는 중…</div>':S.salesData&&S.salesData.err?'<div class="alert">불러오지 못했습니다. 다시 조회해 주세요.</div>':'<div class="empty">조회를 눌러 주세요</div>');
+ const r=stats(rows);const list=rows.filter(o=>S.salesTest||!o.test);
+ const tbl=(h,body)=>`<table class="stack"><thead><tr>${h}</tr></thead><tbody>${body}</tbody></table>`;
+ return ctl+`<div class="kpis"><div class="kpi main"><span>결제 완료 매출</span><b>${won(r.paid)}</b></div><div class="kpi"><span>미결제</span><b>${won(r.unpaid)}</b></div><div class="kpi"><span>주문 (취소 제외)</span><b>${r.n}건 · ${won(r.total)}</b></div><div class="kpi"><span>취소</span><b>${r.cn}건 · ${won(r.camt)}</b></div></div>
+ <div class="two">${S.salesMode==='range'?`<div>${tbl('<th>날짜</th><th class="r">주문</th><th class="r">결제 완료</th><th class="r">미결제</th><th class="r">취소</th>',Object.keys(r.byDay).sort().map(d=>`<tr><td>${esc(d)}</td><td class="r">${r.byDay[d].n}</td><td class="r">${won(r.byDay[d].paid)}</td><td class="r">${won(r.byDay[d].unpaid)}</td><td class="r">${r.byDay[d].cn}</td></tr>`).join(''))}</div>`:''}
+ <div>${tbl('<th>태블릿</th><th class="r">주문</th><th class="r">금액</th><th class="r">결제 완료</th>',Object.entries(r.byTab).map(([k,v])=>`<tr><td>${esc(k)}</td><td class="r">${v.n}</td><td class="r">${won(v.amt)}</td><td class="r">${won(v.paid)}</td></tr>`).join('')||'<tr><td colspan="4">없음</td></tr>')}</div>
+ <div>${tbl('<th>메뉴</th><th class="r">수량</th><th class="r">금액</th>',Object.entries(r.byMenu).sort((a,b)=>b[1].amt-a[1].amt).map(([k,v])=>`<tr><td>${esc(k)}</td><td class="r">${v.q}</td><td class="r">${won(v.amt)}</td></tr>`).join('')||'<tr><td colspan="3">없음</td></tr>')}</div>
+ <div>${tbl('<th>결제 수단</th><th class="r">금액</th>',Object.entries(r.byMeth).map(([k,v])=>`<tr><td>${esc(k)}</td><td class="r">${won(v)}</td></tr>`).join('')||'<tr><td colspan="2">없음</td></tr>')}</div></div>
+ <div class="bar"><h2 style="font-size:18px">주문 목록 ${list.length}건</h2><button class="btn sm ghost" data-act="csvdl">CSV 내려받기 (엑셀)</button></div>
+ ${tbl('<th>날짜·시각</th><th>자리</th><th>내용</th><th>상태</th><th>결제</th><th class="r">금액</th>',list.map(o=>`<tr><td>${esc(o.dateKey)} ${hm(o.createdAt)}</td><td>${esc(o.place||o.tabletName)}${o.test?' <span class="tag test">테스트</span>':''}</td><td>${esc((o.items||[]).map(i=>i.name+' ×'+i.qty).join(', '))}${o.memo?`<div class="fine">${esc(o.memo)}</div>`:''}</td><td>${esc(ST[o.status]||o.status)}${o.cancelReason?`<div class="fine">${esc(o.cancelReason)}</div>`:''}</td><td>${o.pay==='paid'?'완료 · '+esc(o.payMethod):'미결제'}</td><td class="r">${won(o.total)}</td></tr>`).join('')||'<tr><td colspan="6">주문 없음</td></tr>')}
+ <p class="fine">날짜는 태블릿 시계의 달력 날짜(자정 기준)로 나뉩니다. 새벽 영업분을 전날 매출로 볼지 ${NEED}</p>`}
+function csvText(){const rows=(salesRows()||[]).filter(o=>S.salesTest||!o.test);const q=v=>'"'+String(v==null?'':v).replace(/"/g,'""')+'"';
+ return [['날짜','시각','자리','태블릿','내용','상태','결제','결제수단','금액','테스트'].map(q).join(','),...rows.map(o=>[o.dateKey,hm(o.createdAt),o.place,o.tabletName,(o.items||[]).map(i=>i.name+' x'+i.qty).join(' / '),ST[o.status]||o.status,o.pay==='paid'?'완료':'미결제',o.payMethod,o.total,o.test?'Y':''].map(q).join(','))].join('\n')}
+
+/* 장애 기록 */
+function vIncidents(){const list=S.incidents.filter(i=>!S.incFilter||i.tabletId===S.incFilter);
+ return `<div class="bar"><h2>장애·연결 끊김 기록</h2><select id="incF" style="width:auto"><option value="">전체 태블릿</option>${S.tablets.map(t=>`<option value="${esc(t.id)}"${S.incFilter===t.id?' selected':''}>${esc(t.name)}</option>`).join('')}</select><button class="btn" data-act="incnew">직접 기록</button></div>
+ <table class="stack"><thead><tr><th>시작</th><th>복구</th><th>태블릿</th><th>유형</th><th>감지</th><th>메모</th><th></th></tr></thead><tbody>${list.map(i=>`<tr><td>${dt(i.at)}</td><td>${i.endAt?dt(i.endAt)+' ('+dur(i.endAt-i.at)+')':'<span class="tag off">진행 중</span>'}</td><td>${esc(i.tabletName||i.tabletId)}</td><td>${esc(i.kind)}</td><td>${i.source==='manual'?'직접':i.source==='auto-self'?'기기 자체':i.source==='server'?'서버 감지':'자동'}</td><td>${esc(i.note)}</td><td>${i.endAt?'':`<button class="btn sm ghost" data-act="incend" data-id="${esc(i.id)}">복구됨</button>`}</td></tr>`).join('')||'<tr><td colspan="7">기록 없음</td></tr>'}</tbody></table>
+ <p class="fine">'서버 감지'는 미니 서버가 태블릿 연결이 20초 넘게 끊긴 것을 잡아 기록한 것입니다(카운터 화면이 꺼져 있어도 기록). 서버 컴퓨터가 꺼졌다 켜진 시간도 '미니 서버'로 남습니다. '기기 자체'는 주문용 태블릿이 인터넷 끊김을 스스로 감지해 다시 연결된 뒤 남긴 기록입니다. 최근 300건까지 표시합니다.</p>`}
+function incModal(){const i=S.mctx.i;
+ openModal(`<h2>장애 직접 기록</h2><div class="form"><label>태블릿<select data-f="tabletId">${S.tablets.map(t=>`<option value="${esc(t.id)}"${i.tabletId===t.id?' selected':''}>${esc(t.name)}</option>`).join('')}</select></label><label>유형<select data-f="kind">${KINDS.map(k=>`<option${i.kind===k?' selected':''}>${k}</option>`).join('')}</select></label><label class="ck"><input type="checkbox" data-f="ended"${i.ended?' checked':''}> 이미 복구됨</label><label class="full">메모<input data-f="note" value="${esc(i.note)}"></label></div><div class="mfoot"><button class="btn ghost" data-act="close">닫기</button><button class="btn" data-act="incsave">기록</button></div>`)}
+
+/* 확인 필요 */
+function vCheck(){const open=S.decisions.filter(d=>d.status!=='done'),done=S.decisions.filter(d=>d.status==='done');
+ const row=d=>`<div class="dec"><input type="checkbox" data-act="dectog" data-id="${esc(d.id)}"${d.status==='done'?' checked':''} aria-label="확정"><div><b>${esc(d.title)}</b>${d.detail?`<p>${esc(d.detail)}</p>`:''}${d.answer?`<p class="ans">결정: ${esc(d.answer)}</p>`:''}</div><button class="btn sm ghost" data-act="decedit" data-id="${esc(d.id)}">답 적기</button></div>`;
+ return `<div class="bar"><h2>확인 필요 ${open.length}건</h2><button class="btn ghost" data-act="decnew">항목 추가</button></div><div class="panel" style="padding:0">${open.map(row).join('')||'<div class="empty">남은 항목이 없습니다</div>'}</div>
+ ${done.length?`<details style="margin-top:16px"><summary>확정됨 ${done.length}건</summary><div class="panel" style="padding:0">${done.map(row).join('')}</div></details>`:''}`}
+function decModal(){const d=S.mctx.d;
+ openModal(`<h2>${S.mctx.id?'확인 필요 항목':'항목 추가'}</h2><div class="form"><label class="full">제목<input data-f="title" value="${esc(d.title)}"></label><label class="full">설명<textarea data-f="detail">${esc(d.detail)}</textarea></label><label class="full">결정 내용<textarea data-f="answer">${esc(d.answer)}</textarea></label><label class="ck"><input type="checkbox" data-f="done"${d.done?' checked':''}> 확정</label></div><div class="mfoot"><button class="btn ghost" data-act="close">닫기</button><button class="btn" data-act="decsave">저장</button></div>`)}
+
+/* 설정 */
+function vSettings(){const c=S.config;const t=me()||{};
+ return `<div class="bar"><h2>설정</h2></div><div class="two">
+ <div class="panel"><h3>고객 화면 동영상 (재생 목록)</h3>${(()=>{const vs=vids();const tot=vs.reduce((s,x)=>s+(x.size||0),0);return vs.length?`<div class="review"><ul>${vs.map((x,i)=>`<li><span><b>${i+1}. ${x.yt?'<span class="tag">유튜브</span> ':''}${esc(x.name||(x.yt?x.yt:'영상'))}</b><small>${x.yt?'youtu.be/'+esc(x.yt):MB(x.size)}</small></span><span class="catrow"><button class="btn sm ghost" data-act="vup" data-i="${i}" aria-label="앞으로">▲</button><button class="btn sm ghost" data-act="vdn" data-i="${i}" aria-label="뒤로">▼</button></span><button class="btn sm ghost" data-act="vdel" data-i="${i}">빼기</button></li>`).join('')}</ul></div><span class="fine">${vs.length}개 · 합계 ${MB(tot)} · 위 순서대로 이어서 재생하고 끝나면 처음부터 반복</span>`:'<span class="fine">등록된 동영상이 없습니다. 틀어 둘 영상 파일 '+NEED+'</span>'})()}
+ <div class="catrow">${S.assets?'<label class="btn">동영상 파일 추가<input type="file" accept="video/mp4,video/webm" data-up="video" multiple hidden></label>':'<span class="fine">이 계정은 올리기 권한이 없습니다</span>'}</div>
+ <div class="catrow"><input id="ytUrl" placeholder="유튜브 링크 붙여넣기 (youtube.com/watch?v=… 또는 youtu.be/…)" style="flex:1 1 260px"><button class="btn ghost" data-act="ytadd">유튜브 추가</button></div>
+ <span class="fine">유튜브는 주문용 태블릿이 인터넷에 연결되어 있어야 나옵니다. 영상 주인이 퍼가기를 막은 영상은 재생되지 않고 다음 영상으로 넘어가며, 영상에 따라 유튜브 광고가 나올 수 있습니다.</span>
+ ${S.assetUsage?`<span class="fine">올린 파일 ${S.assetUsage.files}개 · ${MB(S.assetUsage.bytes)}${S.assetUsage.freeBytes!=null?' · 서버 디스크 남은 공간 '+(S.assetUsage.freeBytes/1073741824).toFixed(1)+'GB':''}</span>`:''}
+ <span class="fine">mp4 또는 webm, 파일 하나당 최대 2GB. 여러 개를 올리면 순서대로 이어 재생하고, 여러 파일을 한 번에 골라도 됩니다. 소리 없이 재생됩니다 (소리 필요 여부 ${NEED}).</span>
+ <label class="form"><span>동영상 영역 높이: 화면의 <b id="vpv">${Number(c.videoPct)||40}</b>% (주문 6 : 동영상 4 = 40%)</span><input type="range" id="vidPct" min="15" max="60" value="${Number(c.videoPct)||40}"></label></div>
+ <div class="panel"><h3>매장·기기</h3><div class="form"><label class="full">화면에 보일 매장 이름<input id="storeName" value="${esc(c.storeName||'')}" placeholder="비워 두면 '주문'"></label><label class="full">직원 호출 사유 버튼 (쉼표로 구분, 최대 8개) ${(c.callReasons||[]).length?'':NEED}<input id="callReasons" value="${esc((c.callReasons||[]).join(', '))}" placeholder="비워 두면 사유 없이 호출만"></label></div><button class="btn" data-act="cfgsave">저장</button>
+ <hr style="border:0;border-top:1px solid var(--line);width:100%"><span>이 기기: <b>${esc(t.name||'-')}</b></span><div class="catrow"><button class="btn ghost" data-act="devchange">기기 다시 지정</button><button class="btn ghost" data-act="fs">전체화면</button></div>
+ <hr style="border:0;border-top:1px solid var(--line);width:100%"><span>어제·오늘 테스트 주문 ${S.orders.filter(o=>o.test).length}건</span><button class="btn ghost" data-act="testclear"${S.orders.some(o=>o.test)?'':' disabled'}>테스트 주문 삭제</button></div>
+ <div class="panel"><h3>미니 서버</h3>${S.info?`<span>접속 주소</span>${(S.info.addresses||[]).map(a=>`<code>http://${esc(a)}:${esc(S.info.port)}/#t1</code>`).join('')||'<span class="fine">주소를 찾지 못했습니다</span>'}<span class="fine">버전 ${esc(S.info.version)} · ${dt(S.info.startedAt)}부터 켜져 있음 · 저장된 문서 ${esc(S.info.docs)}건</span>`:'<span class="fine">서버 정보를 불러오는 중…</span>'}
+ <span class="fine">서버가 매일 자동 백업(60일 보관)을 data/backups 폴더에 남깁니다. 아래 버튼으로 지금 상태를 이 기기에 내려받을 수도 있습니다.</span><button class="btn ghost" data-act="backup">지금 백업 내려받기</button>
+ <hr style="border:0;border-top:1px solid var(--line);width:100%"><b>프로그램 업데이트</b><span>지금 버전: <b>${S.info?esc(S.info.version):'-'}</b></span>
+ ${S.upd?(S.upd.loading?'<span class="fine">확인 중…</span>':S.upd.err?`<div class="alert">${esc(S.upd.err)}</div>`:S.upd.available?`<div class="notice"><b>새 버전 ${esc(S.upd.latest)}</b>${S.upd.notes?'<br>'+esc(S.upd.notes):''}</div><button class="btn" data-act="updgo">지금 업데이트</button>`:'<span class="fine">최신 버전입니다.</span>'):''}
+ <div class="catrow"><button class="btn ghost" data-act="updcheck">업데이트 확인</button><button class="btn ghost" data-act="updback">이전 버전으로 되돌리기</button></div>
+ <span class="fine">업데이트하면 주문용 태블릿은 장바구니가 빈 순간에 저절로 새로고침됩니다. 서버 컴퓨터가 인터넷에 연결돼 있어야 합니다.${S.info&&S.info.supervised===false?' 지금 서버가 시작 파일(start-windows.bat 등)로 켜지지 않아서, 서버 프로그램이 바뀌는 업데이트 뒤에는 서버 창을 직접 다시 켜야 합니다.':''}</span>
+ <hr style="border:0;border-top:1px solid var(--line);width:100%"><b>관리 PIN 바꾸기</b><div class="catrow"><input id="newPin" type="password" inputmode="numeric" maxlength="6" placeholder="새 PIN (숫자 4~6자리)" style="max-width:240px" autocomplete="off"><button class="btn ghost" data-act="pinchange">바꾸기</button></div>
+ <span class="fine">고객 화면 왼쪽 위 매장 이름을 3초 안에 5번 누르면 이 PIN을 묻고 기기 메뉴가 열립니다.</span></div></div>`}
+
+/* ---------- 이벤트 ---------- */
+document.addEventListener('click',e=>{const b=e.target.closest('[data-act]');if(!b||b.disabled)return;const a=b.dataset.act,d=b.dataset;
+ if(b.tagName==='INPUT'&&b.type==='checkbox'){}else if(b.tagName==='LABEL')return;
+ act(a,d,b).catch(err=>toast('오류: '+((err&&(err.code||err.message))||''),'bad'))});
+async function act(a,d,b){const c=S.mctx;
+ switch(a){
+ case 'close':closeModal();break;
+ case 'pickdev':S.dev=d.id;LS.set('tod.dev',d.id);location.hash=d.id;S.role=null;route();break;
+ case 'devchange':S.dev=null;LS.set('tod.dev','');try{history.replaceState(null,'',location.pathname+location.search)}catch(e){location.hash=''}S.role=null;route();break;
+ case 'fs':try{await document.documentElement.requestFullscreen()}catch(e){toast('이 환경에서는 전체화면을 쓸 수 없습니다')}try{if(navigator.wakeLock)await navigator.wakeLock.request('screen')}catch(e){}break;
+ /* 고객 */
+ case 'cat':S.cat=d.c;customerParts();break;
+ case 'add':{const m=menuById(d.id);if(!m||m.soldOut)return;if((m.groups||[]).length){S.mctx={type:'opt',mid:m.id,sel:{},qty:1};optModal()}else{addLine(m.id,[],1);toast(m.name+' 담았습니다','ok')}break}
+ case 'optpick':{const g=+d.g,ci=+d.c,m=menuById(c.mid);const grp=m.groups[g];const s=c.sel[g]||[];c.sel[g]=grp.multi?(s.includes(ci)?s.filter(x=>x!==ci):[...s,ci]):(s.includes(ci)&&!grp.req?[]:[ci]);optModal();break}
+ case 'optqty':c.qty=Math.max(1,Math.min(50,c.qty+(+d.d)));optModal();break;
+ case 'optadd':{const m=menuById(c.mid);const opts=[];(m.groups||[]).forEach((g,gi)=>(c.sel[gi]||[]).forEach(ci=>opts.push({g:g.name,n:g.choices[ci].name})));addLine(m.id,opts,c.qty);closeModal();toast(m.name+' 담았습니다','ok');break}
+ case 'cq':{const l=S.cart[+d.i];if(!l)return;l.qty+=+d.d;if(l.qty<=0)S.cart.splice(+d.i,1);S.pendingId=null;renderCart();break}
+ case 'cartclear':S.cart=[];S.pendingId=null;renderCart();break;
+ case 'review':reviewModal();break;
+ case 'send':await sendOrder();break;
+ case 'myorders':myOrders();break;
+ case 'call':if((S.myCalls||[]).length){toast('이미 직원을 불렀습니다. 잠시만 기다려 주세요');return}S.mctx={type:'call',reason:''};callModal();break;
+ case 'callpick':c.reason=c.reason===d.r?'':d.r;callModal();break;
+ case 'callgo':{if(S.calling)return;if(!navigator.onLine){toast('인터넷 연결이 끊겨 호출을 보낼 수 없습니다. 카운터로 와 주세요','bad');return}const t=me()||{};S.calling=true;b.disabled=true;b.textContent='보내는 중…';const now=NOW();
+  try{await timeout(S.db.collection('calls').add({tabletId:S.dev,tabletName:t.name||'',place:t.place||'',reason:c.reason||'',status:'open',at:now,doneAt:null,dateKey:dkey(),test:!!t.testMode}),12000);
+   S.mctx={type:'called'};openModal('<h2>직원을 불렀습니다</h2><div class="notice">곧 찾아뵙겠습니다.</div><div class="mfoot"><button class="cta" data-act="close">확인</button></div>','big');setTimeout(()=>{if(S.mctx&&S.mctx.type==='called')closeModal()},4000)}
+  catch(e){toast('호출을 보내지 못했습니다. 카운터로 와 주세요','bad');callModal()}finally{S.calling=false}break}
+ case 'calldone':await w('calls/'+d.id,r=>r.update({status:'done',doneAt:NOW()}));break;
+ case 'logo':{const n=NOW();S.taps=S.taps.filter(x=>n-x<3000);S.taps.push(n);if(S.taps.length>=5){S.taps=[];if(S.pinSet)pinModal();else hiddenMenu()}break}
+ case 'pin':{const k=d.k;if(k==='지움')c.v=c.v.slice(0,-1);else if(k==='확인'){let ok=false;try{ok=!!(await window.TOD_API('/api/auth/check',{pin:c.v})).ok}catch(e){}if(ok)hiddenMenu();else{c.v='';toast('PIN이 맞지 않습니다','bad');pinModal()}return}else if(c.v.length<6)c.v+=k;pinModal();break}
+ /* 카운터 */
+ case 'tab':S.tab=d.t;S.pending=false;if(d.t==='settings'){loadUsage();loadInfo()}if(d.t==='sales'&&!salesRows()&&!(S.salesData&&S.salesData.loading))loadSales();counterTab();window.scrollTo(0,0);break;
+ case 'beep':try{S.ac=S.ac||new (window.AudioContext||window.webkitAudioContext)();await S.ac.resume();S.beep=true;beep();b.textContent='알림음 켜짐'}catch(e){toast('알림음을 켤 수 없습니다')}break;
+ case 'showtest':S.showTest=b.checked;counterTab();break;
+ case 'oacc':{const o=S.orders.find(x=>x.id===d.id);if(o)await updOrder(o,{status:'accepted'},'접수');break}
+ case 'odone':{const o=S.orders.find(x=>x.id===d.id);if(o)await updOrder(o,{status:'done'},'전달 완료');break}
+ case 'oback':{const o=S.orders.find(x=>x.id===d.id);if(o)await updOrder(o,{status:'accepted'},'접수로 되돌림');break}
+ case 'ocan':{const o=S.orders.find(x=>x.id===d.id);if(o)cancelModal(o);break}
+ case 'ocango':{const o=S.orders.find(x=>x.id===c.id);if(o&&await updOrder(o,{status:'canceled',cancelReason:c.reason||''},'취소: '+(c.reason||'사유 없음')))closeModal();break}
+ case 'oedit':{const o=S.orders.find(x=>x.id===d.id);if(!o)return;S.mctx={type:'edit',id:o.id,items:JSON.parse(JSON.stringify(o.items||[])),memo:o.memo||''};editModal();break}
+ case 'eq':{const i=c.items[+d.i];i.qty+=+d.d;if(i.qty<=0)c.items.splice(+d.i,1);editModal();break}
+ case 'eadd':{const m=menuById($('#eadd').value);if(!m)return;const ex=c.items.find(i=>i.mid===m.id&&!(i.opts||[]).length);if(ex)ex.qty++;else c.items.push({mid:m.id,name:m.name,opts:[],unit:Number(m.price)||0,qty:1});editModal();break}
+ case 'esave':{const o=S.orders.find(x=>x.id===c.id);if(!o)return;const total=c.items.reduce((s,i)=>s+i.unit*i.qty,0);if(await updOrder(o,{items:c.items,total,memo:c.memo||''},'주문 수정 ('+won(o.total)+' → '+won(total)+')'))closeModal();break}
+ case 'settle':S.mctx={type:'pay',tid:d.id,sel:new Set(unpaidOf(d.id).map(o=>o.id)),method:''};payModal();break;
+ case 'paysel':b.checked?c.sel.add(d.id):c.sel.delete(d.id);payModal();break;
+ case 'paymeth':c.method=d.m;payModal();break;
+ case 'paygo':{const ids=[...c.sel];let ok=0;for(const id of ids){const o=S.orders.find(x=>x.id===id);if(o&&await updOrder(o,{pay:'paid',payMethod:c.method,paidAt:NOW()},'결제 완료 ('+c.method+')'))ok++}toast(ok+'건 결제 완료로 기록했습니다','ok');c.sel=new Set();if(S.mctx)payModal();break}
+ case 'payundo':{const o=S.orders.find(x=>x.id===d.id);if(o&&armed(b))await updOrder(o,{pay:'unpaid',payMethod:'',paidAt:null},'결제 기록 취소');break}
+ case 'mnew':S.mctx={type:'menu',id:null,m:{name:'',cat:S.config.categories&&S.config.categories[0]||'',price:0,sort:0,desc:'',groups:[],soldOut:false,hidden:false}};menuModal();break;
+ case 'medit':{const m=menuById(d.id);if(!m)return;const cp=JSON.parse(JSON.stringify(m));delete cp.id;S.mctx={type:'menu',id:m.id,m:cp};menuModal();break}
+ case 'msold':{const m=menuById(d.id);if(m)await w('menu/'+m.id,r=>r.update({soldOut:!m.soldOut}));break}
+ case 'mhide':{const m=menuById(d.id);if(m)await w('menu/'+m.id,r=>r.update({hidden:!m.hidden}));break}
+ case 'mdel':if(armed(b))await w('menu/'+d.id,r=>r.delete());break;
+ case 'mgadd':(c.m.groups=c.m.groups||[]).push({name:'',req:false,multi:false,choices:[{name:'',price:0}]});menuModal();break;
+ case 'mgrm':c.m.groups.splice(+d.g,1);menuModal();break;
+ case 'mcadd':c.m.groups[+d.g].choices.push({name:'',price:0});menuModal();break;
+ case 'mcrm':c.m.groups[+d.g].choices.splice(+d.c,1);menuModal();break;
+ case 'mimgrm':delete c.m.img;menuModal();break;
+ case 'msave':{const m=c.m;m.name=String(m.name||'').trim();if(!m.name)return toast('이름을 넣어 주세요','bad');if(!m.cat)return toast('분류를 골라 주세요','bad');
+  m.price=Math.max(0,Number(m.price)||0);m.sort=Number(m.sort)||0;m.groups=(m.groups||[]).map(g=>({name:String(g.name||'').trim(),req:!!g.req,multi:!!g.multi,choices:(g.choices||[]).map(x=>({name:String(x.name||'').trim(),price:Number(x.price)||0})).filter(x=>x.name)})).filter(g=>g.name&&g.choices.length);
+  const id=c.id||('m'+NOW().toString(36));if(await w('menu/'+id,r=>r.set({...m,updatedAt:NOW()}))){closeModal();toast('저장했습니다. 모든 태블릿에 반영됩니다','ok')}break}
+ case 'catadd':{const v=($('#newCat').value||'').trim();if(!v)return;const cs=S.config.categories||[];if(cs.includes(v))return toast('이미 있는 분류입니다');$('#newCat').value='';await saveConfig({categories:[...cs,v]});break}
+ case 'catup':case 'catdn':{const cs=[...(S.config.categories||[])];const i=+d.i,j=a==='catup'?i-1:i+1;if(j<0||j>=cs.length)return;[cs[i],cs[j]]=[cs[j],cs[i]];await saveConfig({categories:cs});break}
+ case 'catdel':{const cs=[...(S.config.categories||[])];const n=cs[+d.i];if(S.menu.some(m=>m.cat===n))return toast('이 분류에 메뉴가 있어 지울 수 없습니다','bad');cs.splice(+d.i,1);await saveConfig({categories:cs});break}
+ case 'tnew':S.mctx={type:'tab',id:null,t:{no:S.tablets.length+1,name:'',role:'customer',place:'',model:'',note:'',testMode:false}};tabModal();break;
+ case 'tedit':{const t=S.tablets.find(x=>x.id===d.id);if(!t)return;const cp={...t};delete cp.id;S.mctx={type:'tab',id:t.id,t:cp};tabModal();break}
+ case 'tsave':{const t=c.t;t.name=String(t.name||'').trim();if(!t.name)return toast('이름을 넣어 주세요','bad');const id=c.id||('t'+NOW().toString(36));if(await w('tablets/'+id,r=>r.set({...t,no:Number(t.no)||0})))closeModal();break}
+ case 'ttest':{const t=S.tablets.find(x=>x.id===d.id);if(t)await w('tablets/'+t.id,r=>r.update({testMode:!t.testMode}));break}
+ case 'tdel':if(armed(b))await w('tablets/'+d.id,r=>r.delete());break;
+ case 'smode':S.salesMode=d.m;S.salesData=null;if(!salesRows())loadSales();else counterTab();break;
+ case 'sload':loadSales();break;
+ case 'stest':S.salesTest=b.checked;counterTab();break;
+ case 'updcheck':S.upd={loading:true};counterTab();try{S.upd=await window.TOD_API('/api/update/check')}catch(e){S.upd={err:e.code==='update_unreachable'?'업데이트 서버에 연결할 수 없습니다. 서버 컴퓨터의 인터넷 연결을 확인해 주세요.':(e.message||'확인하지 못했습니다')}}counterTab();break;
+ case 'updgo':{if(!armed(b))return;b.disabled=true;b.textContent='업데이트 중…';try{const r=await window.TOD_API('/api/update/apply',{});S.upd=null;toast(r.upToDate?'이미 최신 버전입니다':r.restart&&!r.supervised?'업데이트했습니다. 서버 창을 닫았다가 다시 켜 주세요':'버전 '+r.version+'(으)로 업데이트했습니다. 화면이 곧 새로고침됩니다','ok');loadInfo()}catch(e){toast(e.message||'업데이트하지 못했습니다','bad');b.disabled=false;b.textContent='지금 업데이트'}break}
+ case 'updback':{if(!armed(b))return;try{const r=await window.TOD_API('/api/update/rollback',{});S.upd=null;toast('버전 '+r.version+'(으)로 되돌렸습니다'+(r.restart&&!r.supervised?'. 서버 창을 다시 켜 주세요':''),'ok');loadInfo()}catch(e){toast(e.message||'되돌리지 못했습니다','bad')}break}
+ case 'csvdl':dl('주문내역-'+(S.salesMode==='day'?S.salesDate:S.salesFrom+'_'+S.salesTo)+'.csv','\uFEFF'+csvText(),'text/csv;charset=utf-8');break;
+ case 'backup':{try{const p=LS.get('tod.admin')||'';const r=await fetch('/api/backup',{headers:{'X-Admin-Pin':p}});if(!r.ok)throw 0;dl('테이블오더-백업-'+dkey()+'.json',await r.blob())}catch(e){toast('백업을 내려받지 못했습니다','bad')}break}
+ case 'pinchange':{const p=($('#newPin').value||'').trim();if(!/^\d{4,6}$/.test(p))return toast('숫자 4~6자리로 넣어 주세요','bad');if(!armed(b))return;try{await window.TOD_API('/api/auth/change',{pin:p});LS.set('tod.admin',p);$('#newPin').value='';toast('관리 PIN을 바꿨습니다. 다른 관리 기기는 새 PIN을 다시 입력해야 합니다','ok')}catch(e){toast('바꾸지 못했습니다','bad')}break}
+ case 'csv':{const t=csvText();navigator.clipboard.writeText(t).then(()=>toast('CSV를 복사했습니다. 엑셀에 붙여 넣으세요','ok'),()=>toast('복사할 수 없는 환경입니다','bad'));break}
+ case 'incnew':S.mctx={type:'inc',i:{tabletId:(S.tablets[0]||{}).id||'',kind:KINDS[0],note:'',ended:false}};incModal();break;
+ case 'incsave':{const i=c.i;const t=S.tablets.find(x=>x.id===i.tabletId);const now=NOW();try{await timeout(S.db.collection('incidents').add({tabletId:i.tabletId,tabletName:t?t.name:i.tabletId,kind:i.kind,source:'manual',at:now,endAt:i.ended?now:null,note:i.note||'',dateKey:dkey()}),12000);closeModal()}catch(e){toast('저장 실패','bad')}break}
+ case 'incend':await w('incidents/'+d.id,r=>r.update({endAt:NOW()}));break;
+ case 'decnew':S.mctx={type:'dec',id:null,d:{title:'',detail:'',answer:'',done:false}};decModal();break;
+ case 'decedit':{const x=S.decisions.find(y=>y.id===d.id);if(!x)return;S.mctx={type:'dec',id:x.id,d:{title:x.title,detail:x.detail||'',answer:x.answer||'',done:x.status==='done',sort:x.sort}};decModal();break}
+ case 'decsave':{const x=c.d;if(!String(x.title||'').trim())return toast('제목을 넣어 주세요','bad');const id=c.id||('d'+NOW().toString(36));if(await w('decisions/'+id,r=>r.set({title:x.title,detail:x.detail||'',answer:x.answer||'',status:x.done?'done':'open',sort:x.sort||NOW(),updatedAt:NOW()})))closeModal();break}
+ case 'dectog':{const x=S.decisions.find(y=>y.id===d.id);if(x)await w('decisions/'+x.id,r=>r.update({status:b.checked?'done':'open',updatedAt:NOW()}));break}
+ case 'cfgsave':{const reasons=($('#callReasons').value||'').split(',').map(x=>x.trim()).filter(Boolean).slice(0,8);if(await saveConfig({callReasons:reasons,storeName:($('#storeName').value||'').trim(),videoPct:Number($('#vidPct').value)||40}))toast('저장했습니다','ok');break}
+ case 'vdel':{if(!armed(b))return;const vs=vids();const x=vs.splice(+d.i,1)[0];if(x&&await saveVids(vs)&&S.assets&&x.id){S.assets.delete(x.id).then(loadUsage).catch(()=>{})}break}
+ case 'ytadd':{const el=$('#ytUrl');const id=ytId(el.value);if(!id)return toast('유튜브 영상 링크를 확인해 주세요','bad');if(vids().some(x=>x.yt===id))return toast('이미 목록에 있는 영상입니다');let name='';try{const r=await fetch('https://www.youtube.com/oembed?format=json&url='+encodeURIComponent('https://www.youtube.com/watch?v='+id));if(r.ok)name=String((await r.json()).title||'').slice(0,120)}catch(e){}
+  if(await saveVids([...vids(),{yt:id,name}])){el.value='';toast('유튜브 영상을 추가했습니다. 모든 주문용 태블릿에 적용됩니다','ok')}break}
+ case 'vup':case 'vdn':{const vs=vids();const i=+d.i,j=a==='vup'?i-1:i+1;if(j<0||j>=vs.length)return;[vs[i],vs[j]]=[vs[j],vs[i]];await saveVids(vs);break}
+ case 'testclear':{if(!armed(b))return;const ts=S.orders.filter(o=>o.test);for(const o of ts)await w('orders/'+o.id,r=>r.delete());toast('테스트 주문 '+ts.length+'건을 지웠습니다','ok');break}
+ }}
+function callModal(){const c=S.mctx;const rs=S.config.callReasons||[];
+ openModal(`<h2>직원을 부를까요?</h2>${rs.length?`<fieldset><legend>무엇이 필요하세요? <small class="fine">(선택)</small></legend><div class="chips">${rs.map(r=>`<button class="chip${c.reason===r?' on':''}" data-act="callpick" data-r="${esc(r)}">${esc(r)}</button>`).join('')}</div></fieldset>`:''}<div class="mfoot"><button class="btn ghost" data-act="close">닫기</button><button class="cta" data-act="callgo">직원 부르기</button></div>`,'big')}
+function callUI(){const b=$('#callBtn');if(!b)return;const on=(S.myCalls||[]).length>0;b.classList.toggle('on',on);b.textContent=on?'호출 중…':'직원 호출'}
+function renderCalls(){const el=$('#kcalls');if(!el)return;const cs=(S.calls||[]);el.hidden=!cs.length;
+ el.innerHTML=cs.map(x=>`<div class="callrow"><b>${esc(x.place||x.tabletName||x.tabletId)}</b><span>직원 호출${x.reason?' · '+esc(x.reason):''}${x.test?' (테스트)':''}</span><time>${hm(x.at)} · ${Math.max(0,Math.floor((NOW()-(x.at||0))/60000))}분 전</time><button class="btn sm" data-act="calldone" data-id="${esc(x.id)}">확인</button></div>`).join('')}
+setInterval(()=>{if(S.role==='counter')renderCalls()},30000);
+function beep(f=880,n=2){if(!S.beep||!S.ac)return;Array.from({length:n},(_,i)=>i*.35).forEach(t0=>{const o=S.ac.createOscillator(),g=S.ac.createGain(),t=S.ac.currentTime+t0;o.frequency.value=f;o.connect(g);g.connect(S.ac.destination);g.gain.setValueAtTime(.001,t);g.gain.exponentialRampToValueAtTime(.5,t+.02);g.gain.exponentialRampToValueAtTime(.001,t+.3);o.start(t);o.stop(t+.32)})}
+function bind(e){const el=e.target,c=S.mctx;
+ if(el.id==='vidPct'){const v=$('#vpv');if(v)v.textContent=el.value}
+ if(e.type==='change'&&el.id==='incF'){S.incFilter=el.value;el.blur();counterTab();return}
+ if(e.type==='change'&&['sDate','sFrom','sTo'].includes(el.id)){if(el.id==='sDate')S.salesDate=el.value;if(el.id==='sFrom')S.salesFrom=el.value;if(el.id==='sTo')S.salesTo=el.value;S.salesData=null;el.blur();if(!salesRows())loadSales();else counterTab();return}
+ if(!c||!modal.contains(el))return;const obj=c.m||c.t||c.i||c.d||c;
+ if(el.dataset.f){obj[el.dataset.f]=el.type==='checkbox'?el.checked:el.dataset.num!=null?(el.value===''?'':Number(el.value)):el.value}
+ if(el.dataset.p){const k=el.dataset.p.split('.');const g=c.m.groups[+k[0]];if(!g)return;if(k[1]==='c'){const ch=g.choices[+k[2]];if(ch)ch[k[3]]=k[3]==='price'?(Number(el.value)||0):el.value}else g[k[1]]=el.type==='checkbox'?el.checked:el.value}}
+document.addEventListener('input',bind);
+document.addEventListener('change',e=>{bind(e);upload(e)});
+async function upload(e){const el=e.target;if(!el.dataset||!el.dataset.up)return;
+ if(el.dataset.up==='video'){const fs=[...(el.files||[])];el.value='';if(!fs.length)return;if(!S.assets)return toast('올리기 권한이 없습니다','bad');
+  const LIM=2*1024**3;const big=fs.filter(f=>f.size>LIM);if(big.length)toast(big.map(f=>f.name).join(', ')+': 2GB가 넘어 건너뜁니다','bad');
+  let n=0;for(const f of fs.filter(f=>f.size<=LIM)){const lab='올리는 중… ('+(n+1)+'/'+(fs.length-big.length)+') '+f.name;toast(lab);window.TOD_PROGRESS=r=>toast(lab+' · '+Math.round(r*100)+'%');
+   try{const r=await S.assets.upload(f,{type:/\.webm$/i.test(f.name)||f.type==='video/webm'?'video/webm':'video/mp4'});if(await saveVids([...vids(),{id:r.id,name:f.name,size:r.sizeBytes}]))n++}
+   catch(err){toast(f.name+' 올리기 실패: '+((err&&err.code)||''),'bad');if(err&&err.code==='quota_or_state')break}}
+  window.TOD_PROGRESS=null;if(n)toast(n+'개 추가했습니다. 모든 주문용 태블릿에 적용됩니다','ok');loadUsage();return}
+ const f=el.files&&el.files[0];el.value='';if(!f)return;const kind=el.dataset.up;
+ if(kind==='localvid'){S.localVid=URL.createObjectURL(f);closeModal();customerParts();toast('이 기기에서만 재생합니다. 새로고침하면 다시 골라야 합니다');return}
+ if(!S.assets)return toast('올리기 권한이 없습니다','bad');
+ if(f.size>20*1024*1024)return toast('20MB 이하 파일만 올릴 수 있습니다','bad');
+ let type;if(kind==='video'){type=/\.webm$/i.test(f.name)||f.type==='video/webm'?'video/webm':'video/mp4'}else{type=['image/png','image/jpeg','image/webp','image/gif'].includes(f.type)?f.type:'';if(!type)return toast('png, jpg, webp, gif 사진만 올릴 수 있습니다','bad')}
+ toast('올리는 중…');
+ try{const r=await S.assets.upload(f,{type});
+  if(kind==='video'){if(await saveConfig({videoId:r.id,videoName:f.name,videoSize:r.sizeBytes}))toast('모든 주문용 태블릿에 적용됩니다','ok')}
+  else if(S.mctx&&S.mctx.type==='menu'){S.mctx.m.img=r.id;menuModal();toast('사진을 올렸습니다. 저장을 눌러 주세요')}}
+ catch(err){toast('올리기 실패: '+((err&&err.code)||''),'bad')}}
+window.TOD_CAN_RELOAD=()=>modal.hidden&&!S.cart.length&&!S.sending&&!inEdit();
+boot();
+}
+</script>
+</body></html>

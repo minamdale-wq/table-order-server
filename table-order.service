@@ -1,0 +1,15 @@
+# 리눅스·라즈베리파이 자동 시작용 (설치 안내서 7번 참고)
+[Unit]
+Description=Table Order Mini Server
+After=network-online.target
+
+[Service]
+WorkingDirectory=/home/pi/table-order-server
+ExecStart=/usr/bin/node /home/pi/table-order-server/server.js
+Environment=TOD_SUPERVISED=1
+Restart=always
+RestartSec=5
+User=pi
+
+[Install]
+WantedBy=multi-user.target
