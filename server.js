@@ -2,12 +2,13 @@
 /*
  * 테이블 오더 미니 서버
  * - Node.js 18 이상, 외부 패키지 없음 (node server.js 로 실행)
- * - 같은 와이파이의 태블릿들이 http://<이 컴퓨터 IP>:8080 으로 접속
+ * - 같은 와이파이의 태블릿들이 http://<이 컴퓨터 IP>:8765 으로 접속 (막혀 있으면 서버가 다른 포트로 옮김)
  * - 데이터는 이 폴더의 data/ 안에 저장 (snapshot.json + journal.jsonl, 매일 backups/)
  */
 const http = require('http'), fs = require('fs'), path = require('path'), os = require('os'), crypto = require('crypto'), { spawnSync } = require('child_process');
 
-const PORT = Number(process.env.PORT) || 8080;
+let PORT = Number(process.env.PORT) || 8765;
+const PORT_CANDIDATES = [Number(process.env.PORT) || 0, 8765, 8899, 9080, 18080, 28080].filter((v, i, a) => v && a.indexOf(v) === i);
 const ROOT = __dirname, PUB = path.join(ROOT, 'public');
 const DATA = process.env.TOD_DATA || path.join(ROOT, 'data');
 const UP = path.join(DATA, 'uploads'), BK = path.join(DATA, 'backups');
@@ -18,7 +19,7 @@ const SUPERVISED = process.env.TOD_SUPERVISED === '1';
 const UPDATABLE = ['server.js', 'public/index.html', 'version.json', 'README.md', 'start-windows.bat', 'start-mac.command', 'table-order.service'];
 const SNAP = path.join(DATA, 'snapshot.json'), JOUR = path.join(DATA, 'journal.jsonl');
 const CONF = path.join(DATA, 'server.json'), ALIVE = path.join(DATA, 'alive.txt');
-const VERSION = '1.1.0', MAX_UPLOAD = 2 * 1024 ** 3, MAX_DOC = 256 * 1024, KEEP_BACKUPS = 60;
+const VERSION = '1.1.1', MAX_UPLOAD = 2 * 1024 ** 3, MAX_DOC = 256 * 1024, KEEP_BACKUPS = 60;
 const TYPES = { 'video/mp4': 'mp4', 'video/webm': 'webm', 'image/png': 'png', 'image/jpeg': 'jpg', 'image/webp': 'webp', 'image/gif': 'gif' };
 const EXT_TYPE = Object.fromEntries(Object.entries(TYPES).map(([t, e]) => [e, t]));
 
@@ -306,6 +307,7 @@ async function handle(req, res) {
   const u = new URL(req.url, 'http://local'), p = u.pathname, m = req.method;
   const ip = (req.socket.remoteAddress || '').replace(/^::ffff:/, '');
   if ((m === 'GET' || m === 'HEAD') && (p === '/' || p === '/index.html')) return serveFile(req, res, path.join(PUB, 'index.html'), 'text/html; charset=utf-8', true);
+  if (m === 'GET' && p === '/api/probe') return json(res, 200, { probe: String(u.searchParams.get('t') || '').slice(0, 40) });
   if (m === 'GET' && p === '/api/events') return sse(req, res, u);
   if ((m === 'GET' || m === 'HEAD') && p.startsWith('/_blob/')) {
     const id = p.slice(7), f = /^[a-f0-9]{32}$/.test(id) && assetIdx.get(id);
@@ -513,22 +515,57 @@ const server = http.createServer((req, res) => {
   });
 });
 server.requestTimeout = 0; server.timeout = 0; server.keepAliveTimeout = 65000;
-server.on('error', e => {
-  if (e.code === 'EADDRINUSE') log('포트 ' + PORT + '을(를) 이미 쓰고 있습니다. 서버가 이미 켜져 있는지 확인하거나 PORT 값을 바꿔 주세요.');
-  else log('서버 오류:', e.message);
-  process.exit(1);
-});
-server.listen(PORT, '0.0.0.0', () => {
-  const addrs = lanAddresses();
+/* 같은 포트를 다른 프로그램이 가로채고 있는지 스스로 확인하고, 그렇다면 다른 포트로 옮김 */
+function probe(addr, port) {
+  return new Promise(done => {
+    const tok = crypto.randomBytes(8).toString('hex');
+    const req = http.get({ host: addr, port, path: '/api/probe?t=' + tok, timeout: 3000, agent: false }, r => {
+      let b = ''; r.on('data', c => { b += c; }); r.on('end', () => done(b.includes(tok) ? 'ok' : 'other')); r.on('error', () => done('other'));
+    });
+    req.on('timeout', () => { req.destroy(); done('timeout'); });
+    req.on('error', e => done(e.code === 'ECONNRESET' || /hang up/i.test(e.message) ? 'other' : 'error:' + (e.code || e.message)));
+  });
+}
+function banner(addrs, results) {
   console.log('\n==================== 테이블 오더 미니 서버 v' + curVersion() + ' ====================');
   if (!addrs.length) console.log('  와이파이/랜에 연결되어 있지 않습니다. 네트워크를 확인해 주세요.');
   for (const a of addrs) {
     console.log('  주문받는 태블릿 :  http://' + a + ':' + PORT + '/#t7');
     console.log('  주문용 태블릿   :  http://' + a + ':' + PORT + '/#t1  ~  #t6');
+    const r = results[a];
+    if (r && r !== 'ok') console.log('  ※ 이 주소 접속 자가 확인 실패(' + r + '). 방화벽·보안 프로그램 설정을 확인해 주세요.');
   }
+  console.log('  이 컴퓨터에서만 열 때 :  http://localhost:' + PORT + '/#t7');
   console.log('  데이터 폴더     :  ' + DATA);
   console.log('  이 창을 닫으면 주문이 멈춥니다. 서버 컴퓨터는 항상 켜 두세요.');
   console.log('==========================================================================\n');
-});
+}
+const preferred = Number(process.env.PORT) || conf.port;
+const ports = [preferred, ...PORT_CANDIDATES].filter((v, i, a) => v && a.indexOf(v) === i);
+function tryListen(i) {
+  if (i >= ports.length) { log('쓸 수 있는 포트를 찾지 못했습니다. 컴퓨터를 다시 시작한 뒤 다시 켜 주세요.'); process.exit(1); }
+  PORT = ports[i];
+  const onErr = e => {
+    server.removeListener('listening', onOk);
+    if (e.code === 'EADDRINUSE' || e.code === 'EACCES') { log('포트 ' + PORT + '은(는) 다른 프로그램이 쓰고 있어 다음 포트를 시도합니다.'); return tryListen(i + 1); }
+    log('서버 오류:', e.message); process.exit(1);
+  };
+  const onOk = async () => {
+    server.removeListener('error', onErr);
+    const addrs = lanAddresses(), results = {};
+    for (const a of addrs) results[a] = await probe(a, PORT);
+    if (addrs.some(a => results[a] === 'other')) {
+      log('포트 ' + PORT + '을(를) 다른 프로그램이 가로채고 있어 다음 포트로 옮깁니다.');
+      return server.close(() => tryListen(i + 1));
+    }
+    if (conf.port !== PORT) { conf.port = PORT; saveConf(); }
+    server.on('error', e => log('서버 오류:', e.message));
+    banner(addrs, results);
+  };
+  server.once('error', onErr);
+  server.once('listening', onOk);
+  server.listen(PORT, '0.0.0.0');
+}
+tryListen(0);
 function shutdown() { log('서버를 끕니다…'); try { compact(); } catch (e) { } process.exit(0); }
 process.on('SIGINT', shutdown); process.on('SIGTERM', shutdown);

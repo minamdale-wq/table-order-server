@@ -1,10 +1,10 @@
 {
-  "version": "1.1.0",
+  "version": "1.1.1",
   "files": [
     "server.js",
     "public/index.html",
     "version.json",
     "README.md"
   ],
-  "notes": "설정 탭에서 버튼으로 업데이트·되돌리기"
+  "notes": "기본 포트를 8765로 바꾸고, 다른 프로그램이 포트를 가로채면 자동으로 다른 포트로 옮김. 업데이트 후 태블릿 주소의 포트 번호가 바뀝니다(서버 창에 표시)."
 }
