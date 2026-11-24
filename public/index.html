@@ -444,6 +444,8 @@ function loadVol(){try{const x=JSON.parse(localStorage.getItem('tod_vol_'+S.dev)
 function saveVol(){try{localStorage.setItem('tod_vol_'+S.dev,JSON.stringify(S.vol))}catch(e){}}
 const volOff=()=>S.vol.m||!S.vol.v||S.volBlocked;
 const canSound=()=>!!window.TODApp||!!(navigator.userActivation&&navigator.userActivation.hasBeenActive);
+/* 유튜브 자막(자동 생성 포함)을 끈다. 영상 안에 새겨진 자막은 끌 수 없음 */
+function ytNoCC(){try{const p=S.ytp;if(!p)return;try{p.setOption('captions','track',{})}catch(e){}try{p.unloadModule('captions')}catch(e){}try{p.unloadModule('cc')}catch(e){}}catch(e){}}
 function ytVol(){try{if(!S.ytp||!S.ytp.setVolume)return;S.ytp.setVolume(S.vol.v);
  if(S.vol.m||!S.vol.v){S.ytp.mute();return}
  if(!canSound()){S.ytp.mute();S.volBlocked=true;volUI();try{S.ytp.playVideo()}catch(e){}return}
@@ -637,9 +639,9 @@ function vPlay(){const v=$('#vid'),yw=$('#ytwrap');if(!v)return;const l=S.vlist|
  if(it.src){yw.hidden=true;try{S.ytp&&S.ytp.pauseVideo&&S.ytp.pauseVideo()}catch(e){}v.hidden=false;v.loop=l.length===1;v.src=it.src;v.play().catch(()=>{});return}
  v.pause();v.removeAttribute('src');v.hidden=true;yw.hidden=false;const gen=S.vGen=(S.vGen||0)+1;
  loadYT().then(()=>{S.ytDown=0;if(gen!==S.vGen)return;
-  if(S.ytp&&S.ytp.loadVideoById){S.ytp.mute();S.ytp.loadVideoById(it.yt);setTimeout(ytVol,600);return}
-  S.ytp=new YT.Player('yt',{width:'100%',height:'100%',videoId:it.yt,playerVars:{autoplay:1,mute:1,controls:0,disablekb:1,fs:0,rel:0,iv_load_policy:3,playsinline:1,origin:location.origin},
-   events:{onReady:e=>{e.target.mute();e.target.playVideo();setTimeout(ytVol,600)},onStateChange:e=>{if(e.data===0)vNext();else if(e.data===2&&!S.vErr){setTimeout(()=>{try{if(S.ytp.getPlayerState()===2){S.ytp.mute();S.volBlocked=!S.vol.m&&!!S.vol.v;volUI();S.ytp.playVideo()}}catch(x){}},800)}},onError:()=>{vMsg('이 유튜브 영상은 재생할 수 없습니다 (퍼가기 금지 또는 삭제)');S.vRetry=setTimeout(()=>{if((S.vlist||[]).length>1)vNext();else vMsg('이 유튜브 영상은 재생할 수 없습니다 (퍼가기 금지 또는 삭제)')},4000)}}})})
+  if(S.ytp&&S.ytp.loadVideoById){S.ytp.mute();S.ytp.loadVideoById(it.yt);setTimeout(ytVol,600);setTimeout(ytNoCC,1500);return}
+  S.ytp=new YT.Player('yt',{width:'100%',height:'100%',videoId:it.yt,playerVars:{autoplay:1,mute:1,controls:0,cc_load_policy:0,disablekb:1,fs:0,rel:0,iv_load_policy:3,playsinline:1,origin:location.origin},
+   events:{onReady:e=>{e.target.mute();e.target.playVideo();ytNoCC();setTimeout(ytVol,600)},onStateChange:e=>{if(e.data===1)ytNoCC();if(e.data===0)vNext();else if(e.data===2&&!S.vErr){setTimeout(()=>{try{if(S.ytp.getPlayerState()===2){S.ytp.mute();S.volBlocked=!S.vol.m&&!!S.vol.v;volUI();S.ytp.playVideo()}}catch(x){}},800)}},onError:()=>{vMsg('이 유튜브 영상은 재생할 수 없습니다 (퍼가기 금지 또는 삭제)');S.vRetry=setTimeout(()=>{if((S.vlist||[]).length>1)vNext();else vMsg('이 유튜브 영상은 재생할 수 없습니다 (퍼가기 금지 또는 삭제)')},4000)}}})})
  .catch(()=>{S.ytDown=NOW();vMsg('유튜브에 연결할 수 없습니다 (태블릿 인터넷 확인)');S.vRetry=setTimeout(()=>{if((S.vlist||[]).length>1)vNext();else vPlay()},l.length>1?3000:30000)})}
 function customerShell(){
  document.documentElement.classList.add('cx');
