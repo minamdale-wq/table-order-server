@@ -1,0 +1,39 @@
+plugins { id 'com.android.application' }
+
+def vp = new Properties()
+vp.load(new FileInputStream(rootProject.file('version.properties')))
+
+android {
+    namespace 'kr.friendsscreen.tableorder'
+    compileSdk 34
+    defaultConfig {
+        applicationId 'kr.friendsscreen.tableorder'
+        minSdk 21
+        targetSdk 34
+        versionCode vp['versionCode'].toInteger()
+        versionName vp['versionName']
+    }
+    // 서명 키는 저장소에 올리지 않는다. 빌드할 때 환경 변수로 받는다 (GitHub Actions가 만들어 줌).
+    signingConfigs {
+        release {
+            def ks = System.getenv('KS_FILE')
+            if (ks) {
+                storeFile file(ks)
+                storePassword System.getenv('KS_PASS')
+                keyAlias 'tableorder'
+                keyPassword System.getenv('KS_PASS')
+            }
+        }
+    }
+    buildTypes {
+        release {
+            minifyEnabled false
+            signingConfig System.getenv('KS_FILE') ? signingConfigs.release : signingConfigs.debug
+        }
+    }
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_1_8
+        targetCompatibility JavaVersion.VERSION_1_8
+    }
+    lint { abortOnError false; checkReleaseBuilds false }
+}

@@ -1,0 +1,64 @@
+name: 안드로이드 앱 빌드
+
+on:
+  push:
+    branches: [main]
+    paths: ['android-app/**', '.github/workflows/android.yml']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.7'
+      - name: Signing key
+        env:
+          KS_B64: ${{ secrets.ANDROID_KEYSTORE_B64 }}
+          KS_PASS_SECRET: ${{ secrets.ANDROID_KEYSTORE_PASS }}
+        run: |
+          # 저장소 비밀값(ANDROID_KEYSTORE_B64)이 있으면 그 키로, 없으면 이번 빌드용 키를 새로 만든다.
+          KS="$RUNNER_TEMP/tableorder.jks"
+          if [ -n "$KS_B64" ]; then
+            echo "$KS_B64" | base64 -d > "$KS"; PASS="$KS_PASS_SECRET"
+          else
+            PASS="$(openssl rand -hex 16)"
+            keytool -genkeypair -keystore "$KS" -alias tableorder -keyalg RSA -keysize 2048 -validity 12000 -storepass "$PASS" -keypass "$PASS" -dname "CN=Table Order, O=Friends Screen, C=KR" >/dev/null 2>&1
+          fi
+          echo "::add-mask::$PASS"
+          echo "KS_FILE=$KS" >> "$GITHUB_ENV"
+          echo "KS_PASS=$PASS" >> "$GITHUB_ENV"
+      - name: Build APK
+        working-directory: android-app
+        run: |
+          set -o pipefail
+          gradle assembleRelease --no-daemon --stacktrace 2>&1 | tee ../build.log
+      - name: Publish APK
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          V=$(grep versionName android-app/version.properties | cut -d= -f2 | tr -d '[:space:]')
+          cp android-app/app/build/outputs/apk/release/app-release.apk table-order-app.apk
+          TAG="app-v$V"
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            gh release upload "$TAG" table-order-app.apk --clobber
+          else
+            gh release create "$TAG" table-order-app.apk --title "주문용 앱 $V" --notes "테이블 오더 안드로이드 앱 $V (주문용 태블릿). 설치 파일: table-order-app.apk" --latest
+          fi
+      - name: Upload build log
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          touch build.log
+          gh release delete ci-log -y --cleanup-tag >/dev/null 2>&1 || true
+          gh release create ci-log build.log --prerelease --title "빌드 기록 (자동)" --notes "최근 앱 빌드 기록: ${{ job.status }}" --target "${{ github.sha }}"
