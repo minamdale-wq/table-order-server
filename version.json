@@ -1,10 +1,10 @@
 {
- "version": "1.1.9",
+ "version": "1.2.0",
  "files": [
   "server.js",
   "public/index.html",
   "version.json",
   "README.md"
  ],
- "notes": "영업 시작/종료 버튼: 영업 종료 중에는 주문용 태블릿에 준비 중 그림이 전체 화면으로 나오고 주문이 막힘. 설정에서 그림 바꾸기."
+ "notes": "영업 준비 중 그림은 주문 칸에만 나오고, 아래 동영상은 계속 재생."
 }
