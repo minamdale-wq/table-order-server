@@ -308,6 +308,7 @@ async function handle(req, res) {
   const u = new URL(req.url, 'http://local'), p = u.pathname, m = req.method;
   const ip = (req.socket.remoteAddress || '').replace(/^::ffff:/, '');
   if ((m === 'GET' || m === 'HEAD') && (p === '/' || p === '/index.html')) return serveFile(req, res, path.join(PUB, 'index.html'), 'text/html; charset=utf-8', true);
+  if ((m === 'GET' || m === 'HEAD') && (p === '/app' || p === '/app.apk')) { res.writeHead(302, { Location: 'https://github.com/minamdale-wq/table-order-server/releases/latest/download/table-order-app.apk', 'Cache-Control': 'no-store' }); return res.end(); }
   if ((m === 'GET' || m === 'HEAD') && p === '/closed.jpg') { if (!fs.existsSync(path.join(PUB, 'closed.jpg'))) return json(res, 404, { error: { code: 'not_found' } }); return serveFile(req, res, path.join(PUB, 'closed.jpg'), 'image/jpeg', true); }
   if (m === 'GET' && p === '/api/probe') return json(res, 200, { probe: String(u.searchParams.get('t') || '').slice(0, 40) });
   if (m === 'GET' && p === '/api/events') return sse(req, res, u);

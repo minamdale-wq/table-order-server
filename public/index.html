@@ -715,7 +715,7 @@ function myOrders(){
 }
 function hiddenMenu(){S.mctx={type:'hidden'};
  openModal(`<h2>기기 메뉴</h2>${S.pinSet?'':'<div class="alert">관리 PIN이 아직 없어 누구나 이 메뉴를 열 수 있습니다. 주문받는 태블릿에서 PIN을 먼저 만들어 주세요.</div>'}
- <button class="devbtn" data-act="fs">전체화면으로</button>
+ ${window.TODApp?'<button class="devbtn" data-act="appsettings">앱 설정 (서버 주소·태블릿 번호·화면 고정)</button>':'<button class="devbtn" data-act="fs">전체화면으로</button>'}
  <label class="devbtn">이 기기에서만 동영상 파일 고르기<input type="file" accept="video/*" data-up="localvid" hidden></label>
  <button class="devbtn" data-act="devchange">이 태블릿 역할 다시 지정</button><div class="mfoot"><button class="btn ghost" data-act="close">닫기</button></div>`)}
 function pinModal(){S.mctx=S.mctx&&S.mctx.type==='pin'?S.mctx:{type:'pin',v:''};
@@ -888,6 +888,7 @@ function vSettings(){const c=S.config;const t=me()||{};
  <hr style="border:0;border-top:1px solid var(--line);width:100%"><span>어제·오늘 테스트 주문 ${S.orders.filter(o=>o.test).length}건</span><button class="btn ghost" data-act="testclear"${S.orders.some(o=>o.test)?'':' disabled'}>테스트 주문 삭제</button></div>
  <div class="panel"><h3>미니 서버</h3>${S.info?`<span>접속 주소</span>${(S.info.addresses||[]).map(a=>`<code>http://${esc(a)}:${esc(S.info.port)}/#t1</code>`).join('')||'<span class="fine">주소를 찾지 못했습니다</span>'}<span class="fine">버전 ${esc(S.info.version)} · ${dt(S.info.startedAt)}부터 켜져 있음 · 저장된 문서 ${esc(S.info.docs)}건</span>`:'<span class="fine">서버 정보를 불러오는 중…</span>'}
  <span class="fine">서버가 매일 자동 백업(60일 보관)을 data/backups 폴더에 남깁니다. 아래 버튼으로 지금 상태를 이 기기에 내려받을 수도 있습니다.</span><button class="btn ghost" data-act="backup">지금 백업 내려받기</button>
+ ${S.info&&(S.info.addresses||[]).length?`<span class="fine"><b>주문용 앱 설치:</b> 태블릿 크롬 주소창에 <code>${esc(S.info.addresses[0])}:${esc(S.info.port)}/app</code> 입력 → 내려받은 파일 열기 → 설치</span>`:''}
  <hr style="border:0;border-top:1px solid var(--line);width:100%"><b>프로그램 업데이트</b><span>지금 버전: <b>${S.info?esc(S.info.version):'-'}</b></span>
  ${S.upd?(S.upd.loading?'<span class="fine">확인 중…</span>':S.upd.err?`<div class="alert">${esc(S.upd.err)}</div>`:S.upd.available?`<div class="notice"><b>새 버전 ${esc(S.upd.latest)}</b>${S.upd.notes?'<br>'+esc(S.upd.notes):''}</div><button class="btn" data-act="updgo">지금 업데이트</button>`:'<span class="fine">최신 버전입니다.</span>'):''}
  <div class="catrow"><button class="btn ghost" data-act="updcheck">업데이트 확인</button><button class="btn ghost" data-act="updback">이전 버전으로 되돌리기</button></div>
@@ -952,6 +953,7 @@ async function act(a,d,b){const c=S.mctx;
  case 'closedimgreset':await saveConfig({closedImg:undefined});closedUI();counterTab();break;
  case 'vol':{const p=$('#volpop');const show=p&&p.hidden;if(show&&S.vol.m){S.vol.m=false;if(!S.vol.v)S.vol.v=50;S.volBlocked=false;applyVol();saveVol()}volPop(show);break}
  case 'volmute':S.vol.m=!S.vol.m;if(!S.vol.m&&!S.vol.v)S.vol.v=50;S.volBlocked=false;applyVol();saveVol();volPop(true);break;
+ case 'appsettings':closeModal();try{window.TODApp.openSettings()}catch(e){}break;
  case 'morder':S.mOrder=!S.mOrder;counterTab();break;
  case 'mup':case 'mdn':{const m=menuById(d.id);if(!m)return;const g=catOrder(m.cat).filter(x=>gk(x)===gk(m));moveTo(m.id,g.findIndex(x=>x.id===m.id)+1+(a==='mup'?-1:1));break}
  case 'msold':{const m=menuById(d.id);if(m)await w('menu/'+m.id,r=>r.update({soldOut:!m.soldOut}));break}
