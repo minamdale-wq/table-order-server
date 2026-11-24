@@ -443,7 +443,13 @@ S.vol={v:50,m:true};
 function loadVol(){try{const x=JSON.parse(localStorage.getItem('tod_vol_'+S.dev)||'null');if(x&&typeof x.v==='number')S.vol={v:Math.max(0,Math.min(100,x.v)),m:!!x.m}}catch(e){}}
 function saveVol(){try{localStorage.setItem('tod_vol_'+S.dev,JSON.stringify(S.vol))}catch(e){}}
 const volOff=()=>S.vol.m||!S.vol.v||S.volBlocked;
-function ytVol(){try{if(!S.ytp||!S.ytp.setVolume)return;S.ytp.setVolume(S.vol.v);if(S.vol.m||!S.vol.v)S.ytp.mute();else S.ytp.unMute()}catch(e){}}
+const canSound=()=>!!window.TODApp||!!(navigator.userActivation&&navigator.userActivation.hasBeenActive);
+function ytVol(){try{if(!S.ytp||!S.ytp.setVolume)return;S.ytp.setVolume(S.vol.v);
+ if(S.vol.m||!S.vol.v){S.ytp.mute();return}
+ if(!canSound()){S.ytp.mute();S.volBlocked=true;volUI();try{S.ytp.playVideo()}catch(e){}return}
+ S.ytp.unMute();try{S.ytp.playVideo()}catch(e){}
+ // 크롬이 소리 있는 재생을 막아 멈췄으면: 소리를 끄고 다시 재생, 다음 터치 때 소리 켬
+ clearTimeout(S.ytChk);S.ytChk=setTimeout(()=>{try{const st=S.ytp.getPlayerState();if(st!==1&&st!==3&&st!==0){S.ytp.mute();S.ytp.playVideo();S.volBlocked=true;volUI()}}catch(e){}},1500)}catch(e){}}
 function applyVol(){const v=$('#vid');if(v){v.volume=S.vol.v/100;const want=S.vol.m||!S.vol.v;if(want){v.muted=true}else{v.muted=false;if(v.getAttribute('src')){const pr=v.play();if(pr&&pr.catch)pr.catch(()=>{v.muted=true;S.volBlocked=true;volUI();v.play().catch(()=>{})})}}}ytVol();volUI()}
 function volUI(){const b=$('#volbtn');if(!b)return;const off=volOff();b.innerHTML=off?ICON.mute:(S.vol.v<45?ICON.volLow:ICON.vol);b.classList.toggle('off',off);
  const m=$('#volm');if(m)m.innerHTML=off?ICON.mute:ICON.vol;const r=$('#volr');if(r&&document.activeElement!==r)r.value=S.vol.v;const t=$('#volv');if(t)t.textContent=(S.vol.m?0:S.vol.v)}
@@ -633,7 +639,7 @@ function vPlay(){const v=$('#vid'),yw=$('#ytwrap');if(!v)return;const l=S.vlist|
  loadYT().then(()=>{S.ytDown=0;if(gen!==S.vGen)return;
   if(S.ytp&&S.ytp.loadVideoById){S.ytp.mute();S.ytp.loadVideoById(it.yt);setTimeout(ytVol,600);return}
   S.ytp=new YT.Player('yt',{width:'100%',height:'100%',videoId:it.yt,playerVars:{autoplay:1,mute:1,controls:0,disablekb:1,fs:0,rel:0,iv_load_policy:3,playsinline:1,origin:location.origin},
-   events:{onReady:e=>{e.target.mute();e.target.playVideo();setTimeout(ytVol,600)},onStateChange:e=>{if(e.data===0)vNext()},onError:()=>{vMsg('이 유튜브 영상은 재생할 수 없습니다 (퍼가기 금지 또는 삭제)');S.vRetry=setTimeout(()=>{if((S.vlist||[]).length>1)vNext();else vMsg('이 유튜브 영상은 재생할 수 없습니다 (퍼가기 금지 또는 삭제)')},4000)}}})})
+   events:{onReady:e=>{e.target.mute();e.target.playVideo();setTimeout(ytVol,600)},onStateChange:e=>{if(e.data===0)vNext();else if(e.data===2&&!S.vErr){setTimeout(()=>{try{if(S.ytp.getPlayerState()===2){S.ytp.mute();S.volBlocked=!S.vol.m&&!!S.vol.v;volUI();S.ytp.playVideo()}}catch(x){}},800)}},onError:()=>{vMsg('이 유튜브 영상은 재생할 수 없습니다 (퍼가기 금지 또는 삭제)');S.vRetry=setTimeout(()=>{if((S.vlist||[]).length>1)vNext();else vMsg('이 유튜브 영상은 재생할 수 없습니다 (퍼가기 금지 또는 삭제)')},4000)}}})})
  .catch(()=>{S.ytDown=NOW();vMsg('유튜브에 연결할 수 없습니다 (태블릿 인터넷 확인)');S.vRetry=setTimeout(()=>{if((S.vlist||[]).length>1)vNext();else vPlay()},l.length>1?3000:30000)})}
 function customerShell(){
  document.documentElement.classList.add('cx');
