@@ -16,7 +16,7 @@ const VERS = path.join(DATA, 'versions');
 for (const d of [DATA, UP, BK, VERS]) fs.mkdirSync(d, { recursive: true });
 const UPDATE_SRC = (process.env.TOD_UPDATE_URL || 'https://raw.githubusercontent.com/minamdale-wq/table-order-server/main/').replace(/\/?$/, '/');
 const SUPERVISED = process.env.TOD_SUPERVISED === '1';
-const UPDATABLE = ['server.js', 'public/index.html', 'version.json', 'README.md', 'start-windows.bat', 'start-mac.command', 'table-order.service'];
+const UPDATABLE = ['server.js', 'public/index.html', 'version.json', 'README.md', 'start-windows.bat', 'start-mac.command', 'table-order.service', 'public/closed.jpg'];
 const SNAP = path.join(DATA, 'snapshot.json'), JOUR = path.join(DATA, 'journal.jsonl');
 const CONF = path.join(DATA, 'server.json'), ALIVE = path.join(DATA, 'alive.txt');
 const VERSION = '1.1.1', MAX_UPLOAD = 2 * 1024 ** 3, MAX_DOC = 256 * 1024, KEEP_BACKUPS = 60;
@@ -142,6 +142,7 @@ function applyOps(ops, admin) {
     if (o.op !== 'delete' && JSON.stringify(o.data).length > MAX_DOC) throw new E(400, 'invalid_argument', '문서가 너무 큽니다');
     const cur = store.get(o.path);
     if (o.op === 'update' && !cur) throw new E(400, 'invalid_argument', '없는 문서입니다');
+    if (!admin && o.path.startsWith('orders/') && o.op === 'set' && !cur) { const cfg = store.get('config/main'); if (cfg && cfg.data && cfg.data.open === false) throw new E(403, 'store_closed', '지금은 영업 준비 중이라 주문을 받지 않습니다'); }
     if (!admin && !allowed(o, cur)) throw new E(403, 'not_permitted', '관리 PIN이 필요합니다');
   }
   const now = Date.now(), ch = [];
@@ -307,6 +308,7 @@ async function handle(req, res) {
   const u = new URL(req.url, 'http://local'), p = u.pathname, m = req.method;
   const ip = (req.socket.remoteAddress || '').replace(/^::ffff:/, '');
   if ((m === 'GET' || m === 'HEAD') && (p === '/' || p === '/index.html')) return serveFile(req, res, path.join(PUB, 'index.html'), 'text/html; charset=utf-8', true);
+  if ((m === 'GET' || m === 'HEAD') && p === '/closed.jpg') { if (!fs.existsSync(path.join(PUB, 'closed.jpg'))) return json(res, 404, { error: { code: 'not_found' } }); return serveFile(req, res, path.join(PUB, 'closed.jpg'), 'image/jpeg', true); }
   if (m === 'GET' && p === '/api/probe') return json(res, 200, { probe: String(u.searchParams.get('t') || '').slice(0, 40) });
   if (m === 'GET' && p === '/api/events') return sse(req, res, u);
   if ((m === 'GET' || m === 'HEAD') && p.startsWith('/_blob/')) {
@@ -581,5 +583,7 @@ function tryListen(i) {
   server.listen(PORT, '0.0.0.0');
 }
 tryListen(0);
+/* 준비 중 화면 기본 그림이 없으면 받아 둠 (예전 버전에서 업데이트한 경우) */
+(async () => { const f = path.join(PUB, 'closed.jpg'); if (fs.existsSync(f)) return; try { const b = await fetchBuf(UPDATE_SRC + 'public/closed.jpg?t=' + Date.now()); if (b && b.length > 1000 && b[0] === 0xFF && b[1] === 0xD8) { fs.writeFileSync(f + '.new', b); fs.renameSync(f + '.new', f); log('준비 중 화면 기본 그림을 받았습니다.'); } } catch (e) { } })();
 function shutdown() { log('서버를 끕니다…'); try { compact(); } catch (e) { } process.exit(0); }
 process.on('SIGINT', shutdown); process.on('SIGTERM', shutdown);
