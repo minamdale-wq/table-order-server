@@ -226,6 +226,13 @@ html.kx body{background:radial-gradient(120% 60% at 50% 0%,#fbf6ee 0%,#f5ecdf 55
 .kx .dev h1{font-family:"Noto Serif KR","Noto Serif CJK KR",serif;color:#3a3024}
 .kx .devbtn{background:#fffdf8;border-color:#eadfcd}
 .kx .sheet{background:#fffdf9;border:1px solid #eadfcd}
+.cnote{position:absolute;left:50%;bottom:1.2em;transform:translateX(-50%);z-index:6;display:flex;flex-direction:column;gap:.5em;width:min(92%,40em);pointer-events:none}.cnote[hidden]{display:none}
+.cnote .cn{display:flex;align-items:center;gap:.7em;padding:.85em 1.3em;border-radius:999px;font-weight:800;font-size:1.15em;box-shadow:0 12px 30px -10px #0008}
+.cnote .cn.wait{background:#fff7e6;color:#6b4a00;border:1.5px solid #e9c46a}.cnote .cn.ok{background:#1f4632;color:#fff;border:1.5px solid #1f4632;font-size:1.3em}
+.cnote .cn i{flex:none;display:grid;place-items:center;width:1.5em;height:1.5em;font-style:normal}
+.cnote .spin{border:3px solid #e9c46a;border-top-color:transparent;border-radius:50%;animation:cspin 1s linear infinite}@keyframes cspin{to{transform:rotate(360deg)}}
+.khead .btn.snd-on{background:linear-gradient(180deg,#2d5e45,#1f4632)!important;border-color:#1f4632!important;color:#fff!important}
+.khead .btn.snd-off{background:#c0392b!important;border-color:#c0392b!important;color:#fff!important;animation:sndpulse 1.4s ease-in-out infinite}@keyframes sndpulse{50%{box-shadow:0 0 0 6px #c0392b55}}
 /* ---------- 모달 ---------- */
 .modal{position:fixed;inset:0;background:#000000b8;display:grid;place-items:center;padding:16px;z-index:20}
 .modal[hidden]{display:none}
@@ -472,9 +479,10 @@ const isOpen=()=>S.config.open!==false;
 const closedSrc=()=>blob(S.config.closedImg)||(window.TOD_API?'/closed.jpg':'');
 function closedUI(){const ov=$('#closedov');if(!ov)return;const shut=!isOpen();ov.hidden=!shut;if(!shut)return;const src=closedSrc(),im=$('#closedimg'),tx=$('#closedtxt'),bg=$('#closedbg');
  if(src){if(im.getAttribute('src')!==src){im.onerror=()=>{im.hidden=true;tx.hidden=false;bg.style.backgroundImage=''};im.onload=()=>{im.hidden=false;tx.hidden=true};im.setAttribute('src',src)}bg.style.backgroundImage='url("'+src+'")'}else{im.hidden=true;tx.hidden=false;bg.style.backgroundImage=''}}
-function openUI(){const b=$('#openBtn'),pl=$('#openPill');if(!b)return;const o=isOpen();if(!b.dataset.armed){b.textContent=o?'영업 종료':'영업 시작';b.className='btn sm '+(o?'open-on':'open-off')}if(pl){pl.textContent=o?'영업 중':'준비 중';pl.className='pill'+(o?'':' closed')}}
+function beepUI(){const b=$('#beepBtn');if(!b)return;b.className='btn sm '+(S.beep?'snd-on':'snd-off');b.innerHTML=S.beep?'🔔 알림음 켜짐':'🔕 알림음 꺼짐 · 눌러서 켜기'}
+function openUI(){beepUI();const b=$('#openBtn'),pl=$('#openPill');if(!b)return;const o=isOpen();if(!b.dataset.armed){b.textContent=o?'영업 종료':'영업 시작';b.className='btn sm '+(o?'open-on':'open-off')}if(pl){pl.textContent=o?'영업 중':'준비 중';pl.className='pill'+(o?'':' closed')}}
 /* ---- 음성 안내: 방마다 다른 띵동 + "1번방 주문입니다" ---- */
-const VDEF={on:true,order:'{방} 주문입니다',call:'{방} 호출입니다',rate:1,rep:1,reason:true};
+const VDEF={on:true,order:'{방} 주문입니다',call:'{방} 호출입니다',rate:1,rep:1,reason:true,repeatSec:20,custOn:true,custOrder:'주문이 접수되었습니다. 조리를 시작합니다.',custCall:'직원이 곧 도착합니다.'};
 const vcfg=()=>({...VDEF,...(S.config.voice||{})});
 const vname=t=>String((t&&t.voiceName)||(t&&t.role!=='counter'&&Number(t.no)?t.no+'번방':'')||(t&&(t.place||t.name))||'').trim();
 let VOICES=[];const loadVoices=()=>{try{VOICES=window.speechSynthesis?speechSynthesis.getVoices():[]}catch(e){VOICES=[]}};
@@ -527,7 +535,29 @@ async function menuExport(){if(!S.menu.length)return toast('내보낼 메뉴가 
  const day=new Date();const fn='메뉴-설정-'+day.getFullYear()+String(day.getMonth()+1).padStart(2,'0')+String(day.getDate()).padStart(2,'0')+'.json';
  try{dlFile(fn,JSON.stringify(d));S.mctx=null;closeModal();toast(items.length+'개 메뉴를 내보냈습니다'+(miss?' (사진 '+miss+'개 못 가져옴)':'')+'. 다른 서버의 메뉴 관리 → 메뉴 가져오기로 넣으세요','ok')}
  catch(x){S.mctx=null;closeModal();toast('파일을 내려받지 못했습니다','bad')}}
-const readVoiceForm=()=>{const g=id=>document.getElementById(id);const o={};if(g('vOn'))o.on=g('vOn').checked;if(g('vOrder'))o.order=g('vOrder').value.trim()||VDEF.order;if(g('vCall'))o.call=g('vCall').value.trim()||VDEF.call;if(g('vRate'))o.rate=Number(g('vRate').value)||1;if(g('vRep'))o.rep=Number(g('vRep').value)||1;if(g('vReason'))o.reason=g('vReason').checked;return o};
+
+/* ---- 손님 화면 진행 안내: 수락 대기 → 수락됨(문구+음성) ---- */
+function custOrders(first){S.ordSeen=S.ordSeen||new Map();for(const o of S.orders){const pv=S.ordSeen.get(o.id);if(!first&&pv==='new'&&o.status==='accepted')custFlash('order');S.ordSeen.set(o.id,o.status)}custNoteUI()}
+function custFlash(k){const v=vcfg();const txt=k==='order'?v.custOrder:v.custCall;S.cflash={k,txt,until:Date.now()+9000};custNoteUI();clearTimeout(S.cflashT);S.cflashT=setTimeout(custNoteUI,9100);if(v.custOn)custSay(txt)}
+function custSay(txt){try{
+ if(window.TODApp&&window.TODApp.speak){window.TODApp.speak(txt);return}
+ const ko=koVoice();if(window.speechSynthesis&&ko){const u=new SpeechSynthesisUtterance(txt);u.lang='ko-KR';u.voice=ko;speechSynthesis.speak(u);return}
+ if(window.TOD_API){const a=new Audio('/api/tts?t='+encodeURIComponent(txt));a.play().catch(()=>{})}}catch(e){}}
+function custNoteUI(){const el=$('#cnote');if(!el)return;const rows=[];const f=S.cflash&&S.cflash.until>Date.now()?S.cflash:null;
+ if(f)rows.push(`<div class="cn ok"><i>✓</i><span>${esc(f.txt)}</span></div>`);
+ if((S.myCalls||[]).length&&!(f&&f.k==='call'))rows.push('<div class="cn wait"><i class="spin"></i><span>직원 호출 요청 진행 중 · 매장에서 확인하고 있어요</span></div>');
+ if((S.orders||[]).some(o=>o.status==='new')&&!(f&&f.k==='order'))rows.push('<div class="cn wait"><i class="spin"></i><span>주문 수락 대기 중 · 매장에서 주문을 확인하고 있어요</span></div>');
+ el.innerHTML=rows.join('');el.hidden=!rows.length}
+/* ---- 주문받는 쪽: 수락할 때까지 반복 알림 ---- */
+setInterval(()=>{if(S.role!=='counter'||!S.beep)return;const sec=Number(vcfg().repeatSec)||0;if(!sec)return;const now=Date.now();S.annLast=S.annLast||{};const live={};
+ const items=[...(S.orders||[]).filter(o=>o.status==='new').map(o=>['o'+o.id,o.tabletId,'order','',o.test]),...(S.calls||[]).map(c=>['c'+c.id,c.tabletId,'call',c.reason,c.test])];
+ for(const [k,tid,kind,reason,test] of items){live[k]=1;if(!S.annLast[k]){S.annLast[k]=now;continue}if(now-S.annLast[k]>=sec*1000&&VQ.length<6){S.annLast[k]=now;announce(tid,kind,reason,test)}}
+ for(const k in S.annLast)if(!live[k])delete S.annLast[k]},2000);
+/* ---- 주문서 프린터 (매장 서버에서 COM 포트로 출력) ---- */
+const PDEF={on:false,port:'',baud:9600,paper:'80',when:'accept',kor:true,cut:true,copies:1};
+const pcfg=()=>({...PDEF,...(S.config.printer||{})});
+const readPrinterForm=()=>{const g=id=>document.getElementById(id);return{on:g('pOn').checked,port:(v=>/^com\d/i.test(v)?v.toUpperCase():v)(g('pPort').value.trim()),baud:Number(g('pBaud').value)||9600,paper:g('pPaper').value,when:g('pWhen').value,kor:g('pKor').checked,cut:g('pCut').checked,copies:Math.max(1,Math.min(3,Number(g('pCopies').value)||1))}};
+const readVoiceForm=()=>{const g=id=>document.getElementById(id);const o={};if(g('vOn'))o.on=g('vOn').checked;if(g('vOrder'))o.order=g('vOrder').value.trim()||VDEF.order;if(g('vCall'))o.call=g('vCall').value.trim()||VDEF.call;if(g('vRate'))o.rate=Number(g('vRate').value)||1;if(g('vRep'))o.rep=Number(g('vRep').value)||1;if(g('vReason'))o.reason=g('vReason').checked;if(g('vRepeat'))o.repeatSec=Number(g('vRepeat').value)||0;if(g('vCustOn'))o.custOn=g('vCustOn').checked;if(g('vCustOrder'))o.custOrder=g('vCustOrder').value.trim()||VDEF.custOrder;if(g('vCustCall'))o.custCall=g('vCustCall').value.trim()||VDEF.custCall;return o};
 const gk=m=>{const ss=subsAll(m.cat||'');return (m.cat||'')+'\u0001'+(ss.includes(m.sub)?m.sub:'\u0002')};
 function catOrder(c){const ms=S.menu.filter(m=>(m.cat||'')===(c||''));const ss=subsAll(c||'').filter(sb=>ms.some(m=>m.sub===sb));return ss.flatMap(sb=>ms.filter(m=>m.sub===sb)).concat(ms.filter(m=>!ss.includes(m.sub)))}
 async function saveOrder(ids){const ch=[];ids.forEach((id,i)=>{const m=menuById(id),v=(i+1)*10;if(m&&m.sort!==v){m.sort=v;ch.push(m)}});
@@ -579,7 +609,7 @@ function route(){
 function startRole(){
  S.subs.forEach(u=>{try{u()}catch(e){}});S.subs=[];if(S.ordUnsub){S.ordUnsub();S.ordUnsub=null}
  closeModal();
- if(S.role==='customer'){subOrders();customerShell();S.myCalls=[];S.subs.push(S.db.collection('calls').where('tabletId','==',S.dev).where('status','==','open').onSnapshot(s=>{S.myCalls=s.docs.map(d=>({id:d.id,...d.data()}));callUI()},()=>{}))}
+ if(S.role==='customer'){subOrders();customerShell();S.myCalls=[];S.subs.push(S.db.collection('calls').where('tabletId','==',S.dev).where('status','==','open').onSnapshot(s=>{const was=S.myCalls||[];S.myCalls=s.docs.map(d=>({id:d.id,...d.data()}));if(S.callSeen&&was.some(x=>!S.myCalls.some(y=>y.id===x.id)))custFlash('call');S.callSeen=true;callUI();custNoteUI()},()=>{}))}
  else if(S.role==='counter'){if(!S.adminOk){adminGate();presence();return}subOrders();subCounter();counterShell()}
  else setupView();
  if(S.dev&&me()&&!S.booted[S.dev]){S.booted[S.dev]=1;S.db.doc('tablets/'+S.dev).update({lastBoot:NOW()}).catch(()=>{})}
@@ -590,7 +620,7 @@ function subOrders(){
  let q=S.db.collection('orders').where('dateKey','in',[addDays(S.today,-1),S.today]);
  if(S.role==='customer')q=q.where('tabletId','==',S.dev);
  let first=true;
- S.ordUnsub=q.onSnapshot(s=>{S.orders=s.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>(a.createdAt||0)-(b.createdAt||0));
+ S.ordUnsub=q.onSnapshot(s=>{S.orders=s.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>(a.createdAt||0)-(b.createdAt||0));if(S.role==='customer')custOrders(first);
   if(S.role==='counter'&&!first){const n=s.docChanges().filter(c=>c.type==='added'&&c.doc.data().status==='new').length;if(n){s.docChanges().filter(c=>c.type==='added'&&c.doc.data().status==='new').forEach(c=>{const x=c.doc.data();announce(x.tabletId,'order','',x.test)});toast('새 주문 '+n+'건','new')}}
   first=false;rerender()},()=>toast('주문 데이터 연결 오류','bad'));
 }
@@ -668,7 +698,7 @@ function vPlay(){const v=$('#vid'),yw=$('#ytwrap');if(!v)return;const l=S.vlist|
 function customerShell(){
  document.documentElement.classList.add('cx');
  app.innerHTML=`<div class="cust"><div class="cpanel" id="cpanel">${LEAF_TL}${LEAF_R}<header class="chead"><div class="cleft"><span id="cstore"></span><i class="csep"></i><span class="ctitle" id="ctitle"></span><span id="ctest"></span></div><button class="logo" data-act="logo" aria-label="매장 메뉴">${ICON.emblem}<span class="lname" id="lname"></span><span class="lorn"><i></i><b></b><i></i></span></button><div class="cright"><span id="conn" class="conn"></span><button class="hbtn call" data-act="call" id="callBtn">${ICON.person}<span>직원 호출</span></button><button class="hbtn" data-act="myorders">${ICON.list}<span>주문 내역</span></button></div></header>
- <div class="cbody"><nav class="cats" id="ccats" aria-label="메뉴 분류"></nav><section class="grid" id="cgrid"></section><aside class="cart" id="ccart"></aside></div></div>
+ <div class="cbody"><nav class="cats" id="ccats" aria-label="메뉴 분류"></nav><section class="grid" id="cgrid"></section><aside class="cart" id="ccart"></aside></div><div class="cnote" id="cnote" hidden></div></div>
  <div class="vid"><video id="vid" muted autoplay playsinline></video><div id="ytwrap" hidden><div id="yt"></div></div><div class="vempty" id="vempty">동영상이 등록되지 않았습니다</div><div class="volpop" id="volpop" hidden><button class="volm" data-act="volmute" id="volm" aria-label="소리 끄기/켜기"></button><input type="range" id="volr" min="0" max="100" step="5" aria-label="동영상 소리 크기"><b id="volv"></b></div><button class="volbtn" data-act="vol" id="volbtn" aria-label="동영상 소리 조절"></button></div></div><div class="closedov" id="closedov" hidden><div class="cbg" id="closedbg"></div><img id="closedimg" alt="영업 준비 중" hidden><div class="ctxt" id="closedtxt">영업 준비 중</div><button class="ctap" data-act="logo" aria-label="매장 메뉴"></button></div>`;
  const v=$('#vid');
  v.addEventListener('loadedmetadata',()=>applyVol());loadVol();volUI();
@@ -737,7 +767,7 @@ async function sendOrder(){
  const id=S.pendingId||('o'+now.toString(36)+'-'+S.dev);S.pendingId=id;
  const data={tabletId:S.dev,tabletName:t.name||'',place:t.place||'',items,total:items.reduce((s,x)=>s+x.unit*x.qty,0),status:'new',pay:'unpaid',payMethod:'',test:!!t.testMode,dateKey:dkey(),createdAt:now,updatedAt:now,memo:'',log:[{at:now,t:'주문 (고객 화면)'}]};
  try{await timeout(S.db.doc('orders/'+id).set(data),12000);S.pendingId=null;S.cart=[];S.sending=false;renderCart();
-  S.mctx={type:'done'};openModal(`<h2>주문이 들어갔습니다</h2><div class="notice">직원이 확인 후 준비해 드립니다. 결제는 이용 후 카운터에서 해 주세요.</div><div class="mfoot"><button class="cta" data-act="close">확인</button></div>`,'big');
+  S.mctx={type:'done'};openModal(`<h2>주문을 보냈습니다</h2><div class="notice">매장에서 주문을 확인하고 있습니다. 확인되면 화면과 소리로 알려 드릴게요. 결제는 이용 후 카운터에서 해 주세요.</div><div class="mfoot"><button class="cta" data-act="close">확인</button></div>`,'big');
   setTimeout(()=>{if(S.mctx&&S.mctx.type==='done')closeModal()},6000)}
  catch(e){S.sending=false;reviewModal(true);S.db.collection('incidents').add({tabletId:S.dev,tabletName:t.name||'',kind:'주문 전송 실패',source:'auto-self',at:now,endAt:NOW(),note:'오류: '+((e&&e.code)||'알 수 없음'),dateKey:dkey()}).catch(()=>{})}
 }
@@ -775,7 +805,7 @@ function counterTab(){
 }
 function orderNo(o){if(o.test)return 'T';const same=S.orders.filter(x=>x.dateKey===o.dateKey&&!x.test);return String(same.findIndex(x=>x.id===o.id)+1)}
 function ticket(o){const btn=(a,l,c)=>`<button class="btn sm ${c||''}" data-act="${a}" data-id="${esc(o.id)}">${l}</button>`;
- const acts={new:btn('oacc','접수')+btn('oedit','수정','ghost')+btn('ocan','취소','ghost'),accepted:btn('odone','전달 완료')+btn('oedit','수정','ghost')+btn('ocan','취소','ghost'),done:btn('oback','접수로 되돌리기','ghost'),canceled:''}[o.status]||'';
+ const acts={new:btn('oacc','수락')+(window.TOD_API&&pcfg().on?btn('oprint','출력','ghost'):'')+btn('oedit','수정','ghost')+btn('ocan','취소','ghost'),accepted:btn('odone','전달 완료')+(window.TOD_API&&pcfg().on?btn('oprint','출력','ghost'):'')+btn('oedit','수정','ghost')+btn('ocan','취소','ghost'),done:btn('oback','접수로 되돌리기','ghost'),canceled:''}[o.status]||'';
  return `<article class="ticket st-${esc(o.status)}"><header><b>#${orderNo(o)}</b><span>${esc(o.place||o.tabletName||o.tabletId)}</span>${o.test?'<span class="tag test">테스트</span>':''}<time>${o.dateKey!==S.today?'어제 ':''}${hm(o.createdAt)}</time></header>
  <ul>${(o.items||[]).map(i=>`<li><span>${esc(i.name)}${(i.opts||[]).length?` <small>(${esc(i.opts.map(x=>x.n).join(', '))})</small>`:''}</span><b>×${i.qty}</b></li>`).join('')}</ul>
  ${o.memo?`<div class="memo">${esc(o.memo)}</div>`:''}${o.status==='canceled'&&o.cancelReason?`<div class="memo">취소 사유: ${esc(o.cancelReason)}</div>`:''}
@@ -907,11 +937,24 @@ function vSettings(){const c=S.config;const t=me()||{};
  <span class="fine">mp4 또는 webm, 파일 하나당 최대 2GB. 여러 개를 올리면 순서대로 이어 재생하고, 여러 파일을 한 번에 골라도 됩니다. 주문용 태블릿은 켤 때마다 소리 없이 시작합니다. 동영상 오른쪽 아래 스피커 버튼으로 소리를 켜고 크기를 조절할 수 있습니다 (크기는 태블릿마다 기억).</span>
  <label class="form"><span>동영상 영역 높이: 화면의 <b id="vpv">${Number(c.videoPct)||40}</b>% (주문 6 : 동영상 4 = 40%)</span><input type="range" id="vidPct" min="15" max="60" value="${Number(c.videoPct)||40}"></label></div>
  <div class="panel"><h3>영업 준비 중 화면</h3><span class="fine">위쪽 '영업 종료'를 누르면 주문용 태블릿 6대에 이 그림이 전체 화면으로 나오고 주문이 막힙니다. '영업 시작'을 누르면 다시 주문 화면으로 돌아갑니다.</span>${closedSrc()?`<img src="${esc(closedSrc())}" alt="준비 중 화면" style="width:100%;max-height:220px;object-fit:contain;border-radius:12px;background:#0d1a14">`:'<span class="fine">그림이 없으면 "영업 준비 중" 글씨만 나옵니다.</span>'}<div class="catrow">${S.assets?'<label class="btn ghost">그림 바꾸기<input type="file" accept="image/*" data-up="closedimg" hidden></label>':''}${S.config.closedImg&&window.TOD_API?'<button class="btn ghost" data-act="closedimgreset">기본 그림으로</button>':''}</div></div>
+ ${window.TOD_API?(()=>{const pc=pcfg();return `<div class="panel"><h3>주문서 프린터 <span class="fine">매장 서버 컴퓨터의 COM 포트</span></h3>
+ <label class="vchk"><input type="checkbox" id="pOn"${pc.on?' checked':''}> 주문서 출력하기</label>
+ <div class="vgrid"><label>COM 포트<input id="pPort" list="pPorts" value="${esc(pc.port)}" placeholder="예: COM3"><datalist id="pPorts">${(S.pPorts||[]).map(x=>`<option value="${esc(x)}">`).join('')}</datalist></label>
+ <label>속도(Baud)<select id="pBaud">${[9600,19200,38400,57600,115200].map(x=>`<option${Number(pc.baud)===x?' selected':''}>${x}</option>`).join('')}</select></label>
+ <label>용지<select id="pPaper"><option value="80"${pc.paper==='80'?' selected':''}>80mm</option><option value="58"${pc.paper==='58'?' selected':''}>58mm</option></select></label>
+ <label>출력 시점<select id="pWhen"><option value="accept"${pc.when==='accept'?' selected':''}>수락을 누를 때</option><option value="new"${pc.when==='new'?' selected':''}>주문이 들어오자마자</option><option value="manual"${pc.when==='manual'?' selected':''}>'출력' 버튼으로만</option></select></label>
+ <label>장수<select id="pCopies">${[1,2,3].map(x=>`<option${Number(pc.copies)===x?' selected':''}>${x}</option>`).join('')}</select></label></div>
+ <label class="vchk"><input type="checkbox" id="pKor"${pc.kor?' checked':''}> 한글 모드 (한글이 깨지면 끄거나 켜 보세요)</label>
+ <label class="vchk"><input type="checkbox" id="pCut"${pc.cut?' checked':''}> 출력 후 용지 자르기</label>
+ <div class="catrow"><button class="btn ghost" data-act="pports">포트 찾기</button><button class="btn ghost" data-act="ptest">테스트 출력</button><button class="btn" data-act="psave">프린터 저장</button></div>
+ <span class="fine">${S.pPorts?('이 서버에서 찾은 포트: '+(S.pPorts.length?S.pPorts.map(esc).join(', '):'없음')):'포트 이름을 모르면 \'포트 찾기\'를 누르세요.'} 프린터 3대 중 출력할 1대의 포트를 고르고, 테스트 출력으로 확인하세요.</span></div>`})():''}
  <div class="panel vpanel"><h3>음성 안내 (주문받는 태블릿)</h3>${(()=>{const v=vcfg(),ko=koVoice();return `
  <label class="vchk"><input type="checkbox" id="vOn"${v.on?' checked':''}> 주문·호출이 오면 방 이름을 소리 내어 읽기</label>
  <div class="vgrid"><label>주문 문구<input id="vOrder" value="${esc(v.order)}"></label><label>호출 문구<input id="vCall" value="${esc(v.call)}"></label>
  <label>읽는 속도<select id="vRate">${[[0.85,'느리게'],[1,'보통'],[1.15,'빠르게']].map(([x,l])=>`<option value="${x}"${Number(v.rate)===x?' selected':''}>${l}</option>`).join('')}</select></label>
  <label>반복<select id="vRep">${[1,2,3].map(x=>`<option value="${x}"${Number(v.rep)===x?' selected':''}>${x}번</option>`).join('')}</select></label></div>
+ <label>수락할 때까지 반복 알림<select id="vRepeat">${[[0,'반복 안 함'],[10,'10초마다'],[20,'20초마다'],[30,'30초마다'],[60,'1분마다']].map(([x,l])=>`<option value="${x}"${Number(v.repeatSec)===x?' selected':''}>${l}</option>`).join('')}</select></label>
+ <h3 style="margin-top:1em">손님 태블릿 안내</h3><label class="vchk"><input type="checkbox" id="vCustOn"${v.custOn?' checked':''}> 수락하면 손님 태블릿에서도 소리 내어 읽기</label><div class="vgrid"><label>주문 수락 문구<input id="vCustOrder" value="${esc(v.custOrder)}"></label><label>호출 수락 문구<input id="vCustCall" value="${esc(v.custCall)}"></label></div>
  <label class="vchk"><input type="checkbox" id="vReason"${v.reason?' checked':''}> 호출 사유도 읽기 (예: "1번방 호출입니다, 물티슈")</label>
  <span class="fine">{방} 자리에 아래 이름이 들어갑니다. 방마다 띵동 소리의 음도 다르게 납니다.</span>
  <div class="vlist">${S.tablets.filter(t=>t.role!=='counter').map(t=>`<div class="vr"><b>${esc(t.name||t.id)}</b><input data-vname="${esc(t.id)}" value="${esc(t.voiceName||'')}" placeholder="${esc(vname(t))}"><span class="catrow"><button class="btn sm ghost" data-act="vtest" data-id="${esc(t.id)}" data-k="order">주문 듣기</button><button class="btn sm ghost" data-act="vtest" data-id="${esc(t.id)}" data-k="call">호출 듣기</button></span></div>`).join('')}</div>
@@ -956,14 +999,15 @@ async function act(a,d,b){const c=S.mctx;
  case 'callpick':c.reason=c.reason===d.r?'':d.r;callModal();break;
  case 'callgo':{if(S.calling)return;if(!navigator.onLine){toast('인터넷 연결이 끊겨 호출을 보낼 수 없습니다. 카운터로 와 주세요','bad');return}const t=me()||{};S.calling=true;b.disabled=true;b.textContent='보내는 중…';const now=NOW();
   try{await timeout(S.db.collection('calls').add({tabletId:S.dev,tabletName:t.name||'',place:t.place||'',reason:c.reason||'',status:'open',at:now,doneAt:null,dateKey:dkey(),test:!!t.testMode}),12000);
-   S.mctx={type:'called'};openModal('<h2>직원을 불렀습니다</h2><div class="notice">곧 찾아뵙겠습니다.</div><div class="mfoot"><button class="cta" data-act="close">확인</button></div>','big');setTimeout(()=>{if(S.mctx&&S.mctx.type==='called')closeModal()},4000)}
+   S.mctx={type:'called'};openModal('<h2>직원 호출을 보냈습니다</h2><div class="notice">매장에서 확인하면 화면과 소리로 알려 드릴게요.</div><div class="mfoot"><button class="cta" data-act="close">확인</button></div>','big');setTimeout(()=>{if(S.mctx&&S.mctx.type==='called')closeModal()},4000)}
   catch(e){toast('호출을 보내지 못했습니다. 카운터로 와 주세요','bad');callModal()}finally{S.calling=false}break}
  case 'calldone':await w('calls/'+d.id,r=>r.update({status:'done',doneAt:NOW()}));break;
  case 'logo':{const n=NOW();S.taps=S.taps.filter(x=>n-x<3000);S.taps.push(n);if(S.taps.length>=5){S.taps=[];if(S.pinSet)pinModal();else hiddenMenu()}break}
  case 'pin':{const k=d.k;if(k==='지움')c.v=c.v.slice(0,-1);else if(k==='확인'){let ok=false;try{ok=!!(await window.TOD_API('/api/auth/check',{pin:c.v})).ok}catch(e){}if(ok)hiddenMenu();else{c.v='';toast('PIN이 맞지 않습니다','bad');pinModal()}return}else if(c.v.length<6)c.v+=k;pinModal();break}
  /* 카운터 */
  case 'tab':S.tab=d.t;S.pending=false;if(d.t==='settings'){loadUsage();loadInfo()}if(d.t==='sales'&&!salesRows()&&!(S.salesData&&S.salesData.loading))loadSales();counterTab();window.scrollTo(0,0);break;
- case 'beep':try{S.ac=S.ac||new (window.AudioContext||window.webkitAudioContext)();await S.ac.resume();S.beep=true;b.textContent='알림음 켜짐';primeVoice()}catch(e){toast('알림음을 켤 수 없습니다')}break;
+ case 'beep':if(S.beep){S.beep=false;VQ.length=0;try{window.speechSynthesis&&speechSynthesis.cancel()}catch(e){}beepUI();toast('알림음을 껐습니다. 주문이 와도 소리가 나지 않습니다','bad');break}
+  try{S.ac=S.ac||new (window.AudioContext||window.webkitAudioContext)();await S.ac.resume();S.beep=true;beepUI();primeVoice()}catch(e){toast('알림음을 켤 수 없습니다')}break;
  case 'showtest':S.showTest=b.checked;counterTab();break;
  case 'oacc':{const o=S.orders.find(x=>x.id===d.id);if(o)await updOrder(o,{status:'accepted'},'접수');break}
  case 'odone':{const o=S.orders.find(x=>x.id===d.id);if(o)await updOrder(o,{status:'done'},'전달 완료');break}
@@ -989,6 +1033,10 @@ async function act(a,d,b){const c=S.mctx;
  case 'volmute':S.vol.m=!S.vol.m;if(!S.vol.m&&!S.vol.v)S.vol.v=50;S.volBlocked=false;applyVol();saveVol();volPop(true);break;
  case 'appsettings':closeModal();try{window.TODApp.openSettings()}catch(e){}break;
  case 'menuexport':menuExport();break;
+ case 'pports':try{const r=await window.TOD_API('/api/print/ports');S.pPorts=r.ports||[];counterTab();if(!S.pPorts.length)toast('COM 포트를 찾지 못했습니다','bad')}catch(e){toast(e.message||'포트를 찾지 못했습니다','bad')}break;
+ case 'psave':{const pc=readPrinterForm();if(pc.on&&!pc.port){toast('COM 포트를 넣어 주세요','bad');return}if(await saveConfig({printer:pc}))toast('프린터 설정을 저장했습니다','ok');break}
+ case 'ptest':{const pc=readPrinterForm();if(!pc.port){toast('COM 포트를 넣어 주세요','bad');return}b.disabled=true;toast('테스트 출력 중…');try{await window.TOD_API('/api/print/test',{printer:pc});toast('테스트 출력을 보냈습니다. 종이가 나왔는지 확인하세요','ok')}catch(e){toast(e.message||'출력하지 못했습니다','bad')}finally{b.disabled=false}break}
+ case 'oprint':{b.disabled=true;try{await window.TOD_API('/api/print/order',{id:d.id});toast('주문서를 출력했습니다','ok')}catch(e){toast(e.message||'출력하지 못했습니다','bad')}finally{b.disabled=false}break}
  case 'morder':S.mOrder=!S.mOrder;counterTab();break;
  case 'mup':case 'mdn':{const m=menuById(d.id);if(!m)return;const g=catOrder(m.cat).filter(x=>gk(x)===gk(m));moveTo(m.id,g.findIndex(x=>x.id===m.id)+1+(a==='mup'?-1:1));break}
  case 'msold':{const m=menuById(d.id);if(m)await w('menu/'+m.id,r=>r.update({soldOut:!m.soldOut}));break}
@@ -1056,7 +1104,7 @@ function callModal(){const c=S.mctx;const rs=S.config.callReasons||[];
  openModal(`<h2>직원을 부를까요?</h2>${rs.length?`<fieldset><legend>무엇이 필요하세요? <small class="fine">(선택)</small></legend><div class="chips">${rs.map(r=>`<button class="chip${c.reason===r?' on':''}" data-act="callpick" data-r="${esc(r)}">${esc(r)}</button>`).join('')}</div></fieldset>`:''}<div class="mfoot"><button class="btn ghost" data-act="close">닫기</button><button class="cta" data-act="callgo">직원 부르기</button></div>`,'big')}
 function callUI(){const b=$('#callBtn');if(!b)return;const on=(S.myCalls||[]).length>0;b.classList.toggle('on',on);b.innerHTML=ICON.person+'<span>'+(on?'호출 중…':'직원 호출')+'</span>'}
 function renderCalls(){const el=$('#kcalls');if(!el)return;const cs=(S.calls||[]);el.hidden=!cs.length;
- el.innerHTML=cs.map(x=>`<div class="callrow"><b>${esc(x.place||x.tabletName||x.tabletId)}</b><span>직원 호출${x.reason?' · '+esc(x.reason):''}${x.test?' (테스트)':''}</span><time>${hm(x.at)} · ${Math.max(0,Math.floor((NOW()-(x.at||0))/60000))}분 전</time><button class="btn sm" data-act="calldone" data-id="${esc(x.id)}">확인</button></div>`).join('')}
+ el.innerHTML=cs.map(x=>`<div class="callrow"><b>${esc(x.place||x.tabletName||x.tabletId)}</b><span>직원 호출${x.reason?' · '+esc(x.reason):''}${x.test?' (테스트)':''}</span><time>${hm(x.at)} · ${Math.max(0,Math.floor((NOW()-(x.at||0))/60000))}분 전</time><button class="btn sm" data-act="calldone" data-id="${esc(x.id)}">수락</button></div>`).join('')}
 setInterval(()=>{if(S.role==='counter')renderCalls()},30000);
 function beep(f=880,n=2){if(!S.beep||!S.ac)return;Array.from({length:n},(_,i)=>i*.35).forEach(t0=>{const o=S.ac.createOscillator(),g=S.ac.createGain(),t=S.ac.currentTime+t0;o.frequency.value=f;o.connect(g);g.connect(S.ac.destination);g.gain.setValueAtTime(.001,t);g.gain.exponentialRampToValueAtTime(.5,t+.02);g.gain.exponentialRampToValueAtTime(.001,t+.3);o.start(t);o.stop(t+.32)})}
 function bind(e){const el=e.target,c=S.mctx;

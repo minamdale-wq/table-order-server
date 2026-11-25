@@ -145,17 +145,122 @@ function applyOps(ops, admin) {
     if (!admin && o.path.startsWith('orders/') && o.op === 'set' && !cur) { const cfg = store.get('config/main'); if (cfg && cfg.data && cfg.data.open === false) throw new E(403, 'store_closed', '지금은 영업 준비 중이라 주문을 받지 않습니다'); }
     if (!admin && !allowed(o, cur)) throw new E(403, 'not_permitted', '관리 PIN이 필요합니다');
   }
-  const now = Date.now(), ch = [];
+  const now = Date.now(), ch = [], printQ = [];
   for (const o of ops) {
     const cur = store.get(o.path);
+    if (o.path.startsWith('orders/') && o.op !== 'delete') {
+      const before = cur && cur.data ? cur.data.status : null, after = o.op === 'set' ? o.data.status : (o.data.status !== undefined ? o.data.status : before);
+      if (before === 'new' && after === 'accepted') printQ.push({ path: o.path, when: 'accept' });
+      if (!cur && after === 'new') printQ.push({ path: o.path, when: 'new' });
+    }
     if (o.op === 'delete') { if (!cur) continue; store.delete(o.path); ch.push({ p: o.path, v: null }); continue; }
     if (o.op === 'set' && o.path.startsWith('orders/') && sameOrder(cur, o.data)) continue; // 같은 주문 재전송은 무시
     const v = { data: o.op === 'set' ? o.data : merge(cur.data, o.data), version: (cur ? cur.version : 0) + 1, updatedAt: now };
     store.set(o.path, v); ch.push({ p: o.path, v });
   }
   if (ch.length) { journal(ch); broadcast('change', { paths: ch.map(c => c.p) }); }
+  for (const q of printQ) setImmediate(() => autoPrint(q.path, q.when));
 }
 const sysWrite = ops => { try { applyOps(ops, true); } catch (e) { log('기록 실패', e.message); } };
+
+
+/* ---------------- 주문서 프린터: COM 포트(시리얼) ESC/POS ---------------- */
+const { execFile } = require('child_process');
+const execFileP = (cmd, args, opt) => new Promise((ok, no) => execFile(cmd, args, { timeout: 15000, windowsHide: true, ...(opt || {}) }, (e, so, se) => e ? no(Object.assign(e, { out: String(so || '') + String(se || '') })) : ok(String(so || ''))));
+let KR = null;
+function krMap() {
+  if (KR) return KR; KR = new Map();
+  try { const dec = new TextDecoder('euc-kr'); for (let a = 0x81; a <= 0xFE; a++) for (let b = 0x41; b <= 0xFE; b++) { const c = dec.decode(Buffer.from([a, b])); if (c.length === 1 && c !== '�' && !KR.has(c)) KR.set(c, [a, b]); } } catch (e) { log('한글 인코딩 표를 만들지 못했습니다:', e.message); }
+  return KR;
+}
+function encKR(str) { const m = krMap(), out = []; for (const ch of String(str)) { const c = ch.codePointAt(0); if (c < 0x80) { out.push(c); continue; } const v = m.get(ch); if (v) out.push(v[0], v[1]); else out.push(0x3F); } return Buffer.from(out); }
+const dw = s => [...String(s)].reduce((n, ch) => n + (ch.codePointAt(0) < 0x80 ? 1 : 2), 0);
+function cutW(s, w) { let r = '', n = 0; for (const ch of String(s)) { const k = ch.codePointAt(0) < 0x80 ? 1 : 2; if (n + k > w) break; r += ch; n += k; } return r; }
+function wrapW(s, w) { const out = []; let line = '', n = 0; for (const ch of String(s)) { const k = ch.codePointAt(0) < 0x80 ? 1 : 2; if (n + k > w) { out.push(line); line = ''; n = 0; } line += ch; n += k; } if (line) out.push(line); return out.length ? out : ['']; }
+function lr(l, r, w) { const sp = w - dw(l) - dw(r); if (sp >= 1) return l + ' '.repeat(sp) + r; const ls = wrapW(l, w); return ls.join('\n') + '\n' + ' '.repeat(Math.max(0, w - dw(r))) + r; }
+const wonS = n => (Number(n) || 0).toLocaleString('ko-KR') + '원';
+function roomName(o) { const t = store.get('tablets/' + o.tabletId); const d = t && t.data ? t.data : {}; return String(d.voiceName || (d.role !== 'counter' && Number(d.no) ? d.no + '번방' : '') || o.place || o.tabletName || o.tabletId || '').trim(); }
+function receipt(o, pc, opts) {
+  const W = pc.paper === '58' ? 32 : 48, ESC = 0x1B, GS = 0x1D, FS = 0x1C, parts = [];
+  const raw = (...b) => parts.push(Buffer.from(b)), txt = s => parts.push(encKR(s));
+  const cfg = (store.get('config/main') || {}).data || {};
+  raw(ESC, 0x40); if (pc.kor !== false) raw(FS, 0x26);
+  raw(ESC, 0x61, 1); raw(GS, 0x21, 0x11); txt((opts && opts.title) || '주 문 서'); txt('\n'); raw(GS, 0x21, 0);
+  if (cfg.storeName) txt(cfg.storeName + '\n');
+  txt('\n'); raw(GS, 0x21, 0x11); txt(cutW(roomName(o), Math.floor(W / 2)) + '\n'); raw(GS, 0x21, 0);
+  raw(ESC, 0x61, 0);
+  const d = new Date(o.createdAt || Date.now()), hm = d.toLocaleString('ko-KR', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+  txt('-'.repeat(W) + '\n'); txt(lr('주문 ' + hm, o.test ? '[테스트]' : ('#' + String(o.id || '').slice(-4)), W) + '\n'); txt('-'.repeat(W) + '\n');
+  for (const it of (o.items || [])) {
+    raw(GS, 0x21, 0x01); txt(lr(String(it.name || '') + ' x' + (it.qty || 1), wonS((it.unit || 0) * (it.qty || 1)), W) + '\n'); raw(GS, 0x21, 0);
+    for (const op of (it.opts || [])) txt(cutW('   - ' + (op.g ? op.g + ': ' : '') + op.n + (op.p ? ' (+' + wonS(op.p) + ')' : ''), W) + '\n');
+  }
+  txt('-'.repeat(W) + '\n'); raw(GS, 0x21, 0x01); txt(lr('합계', wonS(o.total), W) + '\n'); raw(GS, 0x21, 0);
+  if (o.memo) for (const l of wrapW('요청: ' + o.memo, W)) txt(l + '\n');
+  txt('결제: 후불 (카운터)\n');
+  raw(ESC, 0x64, 4); if (pc.cut !== false) raw(GS, 0x56, 0x42, 0x00);
+  return Buffer.concat(parts);
+}
+async function serialWrite(pc, buf) {
+  const port = String(pc.port || '').trim(), baud = Number(pc.baud) || 9600;
+  if (!port) throw new E(400, 'no_port', '프린터 COM 포트가 정해지지 않았습니다');
+  let dev;
+  if (process.platform === 'win32') {
+    if (!/^COM\d{1,3}$/i.test(port)) throw new E(400, 'bad_port', '포트 이름은 COM3처럼 넣어 주세요');
+    try { await execFileP('cmd', ['/c', 'mode', port.toUpperCase() + ':', 'BAUD=' + baud, 'PARITY=N', 'DATA=8', 'STOP=1', 'TO=ON', 'DTR=ON', 'RTS=ON']); }
+    catch (e) { throw new E(500, 'port_mode', port + ' 포트를 열 수 없습니다. 포트 이름이 맞는지, 다른 프로그램(포스 등)이 쓰고 있지 않은지 확인해 주세요'); }
+    dev = '\\\\.\\' + port.toUpperCase();
+  } else {
+    if (!/^\/dev\/[\w.\-]+$/.test(port)) throw new E(400, 'bad_port', '포트 이름 오류');
+    await execFileP('stty', [process.platform === 'darwin' ? '-f' : '-F', port, String(baud), 'raw', '-echo']).catch(() => { });
+    dev = port;
+  }
+  let fh;
+  try { fh = await fs.promises.open(dev, 'w'); }
+  catch (e) { throw new E(500, 'port_open', port + ' 포트를 열 수 없습니다 (' + (e.code || e.message) + '). 다른 프로그램이 쓰고 있거나 포트 이름이 다릅니다'); }
+  try {
+    await Promise.race([fh.write(buf), new Promise((_, no) => setTimeout(() => no(new E(504, 'print_timeout', '프린터가 응답하지 않습니다. 전원·케이블·속도(Baud)를 확인해 주세요')), 15000))]);
+  } finally { fh.close().catch(() => { }); }
+}
+let printChain = Promise.resolve();
+function printJob(pc, buf, label) {
+  const copies = Math.max(1, Math.min(3, Number(pc.copies) || 1));
+  const job = printChain.then(async () => { for (let i = 0; i < copies; i++) await serialWrite(pc, buf); log('주문서 출력:', label); });
+  printChain = job.catch(() => { });
+  return job;
+}
+function printFail(label, e) {
+  log('주문서 출력 실패:', label, e.message);
+  const at = Date.now();
+  sysWrite([{ op: 'set', path: 'incidents/p' + at.toString(36), data: { tabletId: 'printer', tabletName: '주문서 프린터', kind: '프린터 오류', source: 'server', at, endAt: at, note: label + ' · ' + e.message, dateKey: dayKey(new Date(at)) } }]);
+}
+function autoPrint(p, when) {
+  const cfg = (store.get('config/main') || {}).data || {}, pc = cfg.printer || {};
+  if (!pc.on || !pc.port || (pc.when || 'accept') !== when) return;
+  const d = store.get(p); if (!d || !d.data) return;
+  const o = { id: p.split('/')[1], ...d.data };
+  printJob(pc, receipt(o, pc), roomName(o) + ' ' + (o.items || []).length + '개 메뉴').catch(e => printFail(roomName(o), e));
+}
+async function listPorts() {
+  if (process.platform === 'win32') {
+    try { const out = await execFileP('powershell', ['-NoProfile', '-Command', '[System.IO.Ports.SerialPort]::GetPortNames() -join ","']); return [...new Set(out.trim().split(',').map(x => x.trim()).filter(Boolean))].sort(); }
+    catch (e) { const out = await execFileP('cmd', ['/c', 'mode']).catch(() => ''); return [...new Set((out.match(/COM\d+/g) || []))].sort(); }
+  }
+  try { return fs.readdirSync('/dev').filter(n => /^(cu\.|tty\.usb|ttyUSB|ttyACM|ttyS\d)/.test(n)).map(n => '/dev/' + n); } catch (e) { return []; }
+}
+/* ---------------- 손님 태블릿 안내 음성: 윈도우 한국어 음성(SAPI)으로 WAV 생성 ---------------- */
+const TTSDIR = path.join(DATA, 'tts');
+async function ttsWav(text) {
+  if (process.platform !== 'win32') throw new E(404, 'no_tts', '이 서버에서는 음성을 만들 수 없습니다');
+  const f = path.join(TTSDIR, crypto.createHash('sha1').update(text).digest('hex').slice(0, 20) + '.wav');
+  if (fs.existsSync(f)) return f;
+  fs.mkdirSync(TTSDIR, { recursive: true });
+  const ps = "Add-Type -AssemblyName System.Speech; $s=New-Object System.Speech.Synthesis.SpeechSynthesizer; $v=$s.GetInstalledVoices()|Where-Object{$_.VoiceInfo.Culture.Name -eq 'ko-KR'}|Select-Object -First 1; if(-not $v){exit 3}; $s.SelectVoice($v.VoiceInfo.Name); $s.Rate=0; $s.SetOutputToWaveFile($env:TOD_TTS_OUT); $s.Speak($env:TOD_TTS_TEXT); $s.Dispose()";
+  await execFileP('powershell', ['-NoProfile', '-EncodedCommand', Buffer.from(ps, 'utf16le').toString('base64')], { env: { ...process.env, TOD_TTS_OUT: f + '.tmp', TOD_TTS_TEXT: text } })
+    .catch(e => { throw new E(404, 'no_tts', '한국어 음성을 만들 수 없습니다'); });
+  fs.renameSync(f + '.tmp', f); return f;
+}
+function ttsAllowed(t) { const v = ((store.get('config/main') || {}).data || {}).voice || {}; return [v.custOrder, v.custCall, '주문이 접수되었습니다. 조리를 시작합니다.', '직원이 곧 도착합니다.'].includes(t); }
 
 /* ---------------- 관리 PIN ---------------- */
 let conf = {};
@@ -308,6 +413,27 @@ async function handle(req, res) {
   const u = new URL(req.url, 'http://local'), p = u.pathname, m = req.method;
   const ip = (req.socket.remoteAddress || '').replace(/^::ffff:/, '');
   if ((m === 'GET' || m === 'HEAD') && (p === '/' || p === '/index.html')) return serveFile(req, res, path.join(PUB, 'index.html'), 'text/html; charset=utf-8', true);
+  if (m === 'GET' && p === '/api/tts') {
+    const t = String(u.searchParams.get('t') || '').slice(0, 120);
+    if (!ttsAllowed(t)) throw new E(403, 'not_permitted', '허용되지 않은 문구');
+    const f = await ttsWav(t); return serveFile(req, res, f, 'audio/wav', false);
+  }
+  if (m === 'GET' && p === '/api/print/ports') { needAdmin(req, ip); return json(res, 200, { ports: await listPorts() }); }
+  if (m === 'POST' && p === '/api/print/test') {
+    needAdmin(req, ip); const b = await body(req); const pc = isObj(b.printer) ? b.printer : (((store.get('config/main') || {}).data || {}).printer || {});
+    const o = { id: 'test', tabletId: 't1', tabletName: '테스트', place: '', test: true, createdAt: Date.now(), total: 8200, memo: '한글 출력 시험: 가나다라마바사 아자차카타파하', items: [{ name: '아메리카노', qty: 1, unit: 3800, opts: [{ g: '온도', n: '아이스', p: 0 }] }, { name: '(한강라면!!)신라면', qty: 1, unit: 4400, opts: [] }] };
+    await printJob({ ...pc, copies: 1 }, receipt(o, pc, { title: '테스트 출력' }), '테스트');
+    return json(res, 200, { ok: true });
+  }
+  if (m === 'POST' && p === '/api/print/order') {
+    needAdmin(req, ip); const b = await body(req); const d = store.get('orders/' + String(b.id || ''));
+    if (!d) throw new E(404, 'not_found', '주문을 찾을 수 없습니다');
+    const pc = ((store.get('config/main') || {}).data || {}).printer || {};
+    if (!pc.port) throw new E(400, 'no_port', '설정에서 프린터 COM 포트를 먼저 정해 주세요');
+    const o = { id: String(b.id), ...d.data };
+    await printJob(pc, receipt(o, pc), roomName(o) + ' (다시 출력)');
+    return json(res, 200, { ok: true });
+  }
   if ((m === 'GET' || m === 'HEAD') && (p === '/app' || p === '/app.apk')) { res.writeHead(302, { Location: 'https://github.com/minamdale-wq/table-order-server/releases/latest/download/table-order-app.apk', 'Cache-Control': 'no-store' }); return res.end(); }
   if ((m === 'GET' || m === 'HEAD') && p === '/closed.jpg') { if (!fs.existsSync(path.join(PUB, 'closed.jpg'))) return json(res, 404, { error: { code: 'not_found' } }); return serveFile(req, res, path.join(PUB, 'closed.jpg'), 'image/jpeg', true); }
   if (m === 'GET' && p === '/api/probe') return json(res, 200, { probe: String(u.searchParams.get('t') || '').slice(0, 40) });
