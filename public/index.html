@@ -1072,16 +1072,20 @@ async function act(a,d,b){const c=S.mctx;
   const sc={...(S.config.subcats||{})};Object.entries(d.subcats||{}).forEach(([k,v])=>{const cur=[...(sc[k]||[])];(Array.isArray(v)?v:[]).forEach(x=>{if(typeof x==='string'&&!cur.includes(x))cur.push(x)});sc[k]=cur});
   const extra={};if(applyCfg&&d.config&&typeof d.config==='object'){const k=d.config;if(typeof k.storeName==='string')extra.storeName=k.storeName.slice(0,40);if(Array.isArray(k.callReasons))extra.callReasons=k.callReasons.filter(x=>typeof x==='string').slice(0,20);if(k.voice&&typeof k.voice==='object')extra.voice=k.voice;if(Number(k.videoPct))extra.videoPct=Math.max(20,Math.min(60,Number(k.videoPct)))}
   await saveConfig({categories:cats0,subcats:sc,...extra});
-  let ok=0,fail=0;const base=Date.now();
+  let ok=0,fail=0;const base=Date.now();const NN=x=>String(x||'').replace(/\s+/g,'').toLowerCase();const touched=new Set();
   for(let i=0;i<items.length;i++){const it=items[i];const pr=$('#impProg');if(pr)pr.textContent=(i+1)+' / '+items.length+' · '+it.name;
    try{let img;if(typeof it.image==='string'&&it.image.startsWith('data:image/')){const b=await (await fetch(it.image)).blob();const r=await S.assets.upload(b,{type:b.type||'image/jpeg'});img=r.id}
-    const ex=S.menu.find(m=>m.cat===it.cat&&m.name===it.name);
+    const ex=S.menu.find(m=>m.cat===it.cat&&m.name===it.name)||S.menu.find(m=>m.cat===it.cat&&NN(m.name)===NN(it.name));
     const fields={name:it.name.trim(),cat:it.cat,sub:typeof it.sub==='string'?it.sub:'',price:Math.max(0,Number(it.price)||0),desc:typeof it.desc==='string'?it.desc:'',sort:Number(it.sort)||0,updatedAt:NOW()};
     if(img)fields.img=img;if(typeof it.hidden==='boolean')fields.hidden=it.hidden;if(Array.isArray(it.groups))fields.groups=it.groups.map(g=>({name:String(g.name||'').trim(),req:!!g.req,multi:!!g.multi,choices:(Array.isArray(g.choices)?g.choices:[]).map(x=>({name:String(x.name||'').trim(),price:Number(x.price)||0})).filter(x=>x.name)})).filter(g=>g.name&&g.choices.length);
-    if(ex)await S.db.doc('menu/'+ex.id).update(fields);
-    else await S.db.doc('menu/m'+(base+i).toString(36)).set({groups:[],soldOut:false,hidden:false,...fields});ok++}
+    if(ex){await S.db.doc('menu/'+ex.id).update(fields);touched.add(ex.id)}
+    else{const nid='m'+(base+i).toString(36);await S.db.doc('menu/'+nid).set({groups:[],soldOut:false,hidden:false,...fields});touched.add(nid)}ok++}
    catch(x){fail++}}
-  S.mctx=null;closeModal();toast('메뉴 '+ok+'개를 가져왔습니다'+(fail?' · 실패 '+fail+'개':''),fail?'bad':'ok');break}
+  let rm=0;{const pr=$('#impProg');if(pr)pr.textContent='중복 메뉴 정리 중…';await new Promise(r=>setTimeout(r,1200));
+   const grp={};for(const m of S.menu){const k=m.cat+'\u0001'+NN(m.name);(grp[k]=grp[k]||[]).push(m)}
+   for(const k in grp){const g=grp[k];if(g.length<2)continue;const keep=g.find(m=>touched.has(m.id))||g.slice().sort((a,b)=>(b.updatedAt||0)-(a.updatedAt||0))[0];
+    for(const m of g)if(m.id!==keep.id){try{await S.db.doc('menu/'+m.id).delete();rm++}catch(e){}}}}
+  S.mctx=null;closeModal();toast('메뉴 '+ok+'개를 가져왔습니다'+(rm?' · 중복 '+rm+'개 삭제':'')+(fail?' · 실패 '+fail+'개':''),fail?'bad':'ok');break}
  case 'csvdl':dl('주문내역-'+(S.salesMode==='day'?S.salesDate:S.salesFrom+'_'+S.salesTo)+'.csv','\uFEFF'+csvText(),'text/csv;charset=utf-8');break;
  case 'backup':{try{const p=LS.get('tod.admin')||'';const r=await fetch('/api/backup',{headers:{'X-Admin-Pin':p}});if(!r.ok)throw 0;dl('테이블오더-백업-'+dkey()+'.json',await r.blob())}catch(e){toast('백업을 내려받지 못했습니다','bad')}break}
  case 'pinchange':{const p=($('#newPin').value||'').trim();if(!/^\d{4,6}$/.test(p))return toast('숫자 4~6자리로 넣어 주세요','bad');if(!armed(b))return;try{await window.TOD_API('/api/auth/change',{pin:p});LS.set('tod.admin',p);$('#newPin').value='';toast('관리 PIN을 바꿨습니다. 다른 관리 기기는 새 PIN을 다시 입력해야 합니다','ok')}catch(e){toast('바꾸지 못했습니다','bad')}break}
