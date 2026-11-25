@@ -322,6 +322,15 @@ details summary{cursor:pointer;min-height:44px;display:flex;align-items:center;f
 @media(prefers-reduced-motion:reduce){#toast{transition:none}}
 </style><script>new MutationObserver(()=>{for(const c of document.querySelectorAll('.stack td:not([data-l])')){let i=0,p=c;while(p=p.previousElementSibling)i+=p.colSpan;c.dataset.l=(c.closest('table').rows[0].cells[i]||{}).textContent||''}}).observe(document,{childList:true,subtree:true})</script></head><body>
 <div id="app"><div class="splash">불러오는 중…</div></div>
+<script>/* 화면 엔진(웹뷰)이 너무 오래돼 화면이 안 뜨면 원인을 보여 준다 (옛 문법으로 작성) */
+(function(){var firstErr='';window.onerror=function(m){if(!firstErr)firstErr=String(m||'');};
+setTimeout(function(){var a=document.getElementById('app');if(!a||!a.querySelector('.splash'))return;
+var m=navigator.userAgent.match(/Chrome\/(\d+)/),v=m?m[1]:'?';
+a.innerHTML='<div style="position:fixed;top:0;left:0;right:0;bottom:0;background:#14130f;color:#fff;padding:6vw;font-size:28px;line-height:1.6;font-family:sans-serif;overflow:auto">'
++'<b style="font-size:34px">주문 화면을 열지 못했습니다</b><br><br>이 태블릿의 화면 엔진(크롬 '+v+')이 오래돼서일 가능성이 큽니다.<br>'
++'Play 스토어에서 <b>Android System WebView</b>와 <b>Chrome</b>을 업데이트한 뒤 앱을 다시 켜 주세요.<br><br>'
++'<span style="font-size:18px;color:#aaa">'+(firstErr?('오류: '+firstErr.replace(/</g,'&lt;')+'<br>'):'')+navigator.userAgent.replace(/</g,'&lt;')+'</span></div>';},9000);})();
+</script>
 <div id="modal" class="modal" hidden></div>
 <div id="toast" role="status" aria-live="polite"></div>
 <script>
