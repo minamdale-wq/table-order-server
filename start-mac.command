@@ -10,6 +10,7 @@ fi
 export TOD_SUPERVISED=1
 while true; do
   caffeinate -i node server.js
+  if [ $? -eq 3 ]; then echo "이미 다른 창에서 서버가 켜져 있습니다. 이 창은 닫으셔도 됩니다."; exit 0; fi
   echo ""
   echo "  서버가 멈췄습니다. 3초 뒤 다시 시작합니다. (이 창을 닫으면 완전히 꺼집니다)"
   sleep 3

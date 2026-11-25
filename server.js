@@ -555,8 +555,16 @@ function tryListen(i) {
     fallbackOnly = true; return tryListen(fb);
   }
   PORT = ports[i];
-  const onErr = e => {
+  const onErr = async e => {
     server.removeListener('listening', onOk);
+    if (e.code === 'EADDRINUSE') {
+      // 이 포트를 쓰는 게 테이블 오더 서버(같은 프로그램)라면 이미 켜져 있는 것 → 두 번째 서버는 켜지 않는다 (데이터가 꼬이지 않게)
+      const mine = await probe('127.0.0.1', PORT);
+      if (mine === 'ok') {
+        log('테이블 오더 서버가 이미 다른 창에서 켜져 있습니다 (포트 ' + PORT + '). 이 창은 닫으셔도 됩니다.');
+        process.exit(3);
+      }
+    }
     if (e.code === 'EADDRINUSE' || e.code === 'EACCES') {
       log('포트 ' + PORT + '은(는) 다른 프로그램이 쓰고 있어 다음 포트를 시도합니다.');
       if (fallbackOnly && i + 1 >= ports.length) { log('쓸 수 있는 포트를 찾지 못했습니다. 컴퓨터를 다시 시작한 뒤 다시 켜 주세요.'); process.exit(1); }
