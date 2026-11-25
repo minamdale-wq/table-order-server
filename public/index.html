@@ -514,6 +514,19 @@ const cats=()=>{const c=[...(S.config.categories||[])];S.menu.forEach(m=>{if(m.c
 const subsOf=c=>[...(((S.config.subcats||{})[c])||[])];
 const subsAll=c=>{const s=subsOf(c);S.menu.forEach(m=>{if(m.cat===c&&m.sub&&!s.includes(m.sub))s.push(m.sub)});return s};
 const menuById=id=>S.menu.find(m=>m.id===id);
+
+/* ---- 메뉴·설정 내보내기: 다른 서버(테스트용 ↔ 매장)로 옮기는 파일. 주문 내역은 넣지 않음 ---- */
+function dlFile(name,text,type){const b=new Blob([text],{type:type||'application/json'});const u=URL.createObjectURL(b);const a=document.createElement('a');a.href=u;a.download=name;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(u);a.remove()},3000)}
+const toDataURL=bl=>new Promise((ok,no)=>{const r=new FileReader();r.onload=()=>ok(r.result);r.onerror=no;r.readAsDataURL(bl)});
+async function menuExport(){if(!S.menu.length)return toast('내보낼 메뉴가 없습니다','bad');S.mctx={type:'exporting',lock:true};openModal('<h2>내보내는 중…</h2><div class="notice" id="expProg">준비 중</div>');
+ const items=[];let n=0,miss=0;for(const m of [...S.menu].sort((a,b)=>(a.sort||0)-(b.sort||0))){n++;const pr=$('#expProg');if(pr)pr.textContent=n+' / '+S.menu.length+' · '+m.name;
+  const it={name:m.name,cat:m.cat,sub:m.sub||'',price:m.price,desc:m.desc||'',sort:m.sort||0,hidden:!!m.hidden,groups:m.groups||[]};
+  if(m.img&&blob(m.img)){try{const r=await fetch(blob(m.img));if(r.ok)it.image=await toDataURL(await r.blob());else miss++}catch(x){miss++}}items.push(it)}
+ const c=S.config||{};const d={format:'table-order-menu',version:1,note:(c.storeName||'테이블 오더')+' 메뉴·설정 '+new Date().toLocaleString('ko-KR'),categories:c.categories||[],subcats:c.subcats||{},
+  config:{storeName:c.storeName||'',callReasons:c.callReasons||[],voice:c.voice||undefined,videoPct:c.videoPct||undefined},items};
+ const day=new Date();const fn='메뉴-설정-'+day.getFullYear()+String(day.getMonth()+1).padStart(2,'0')+String(day.getDate()).padStart(2,'0')+'.json';
+ try{dlFile(fn,JSON.stringify(d));S.mctx=null;closeModal();toast(items.length+'개 메뉴를 내보냈습니다'+(miss?' (사진 '+miss+'개 못 가져옴)':'')+'. 다른 서버의 메뉴 관리 → 메뉴 가져오기로 넣으세요','ok')}
+ catch(x){S.mctx=null;closeModal();toast('파일을 내려받지 못했습니다','bad')}}
 const readVoiceForm=()=>{const g=id=>document.getElementById(id);const o={};if(g('vOn'))o.on=g('vOn').checked;if(g('vOrder'))o.order=g('vOrder').value.trim()||VDEF.order;if(g('vCall'))o.call=g('vCall').value.trim()||VDEF.call;if(g('vRate'))o.rate=Number(g('vRate').value)||1;if(g('vRep'))o.rep=Number(g('vRep').value)||1;if(g('vReason'))o.reason=g('vReason').checked;return o};
 const gk=m=>{const ss=subsAll(m.cat||'');return (m.cat||'')+'\u0001'+(ss.includes(m.sub)?m.sub:'\u0002')};
 function catOrder(c){const ms=S.menu.filter(m=>(m.cat||'')===(c||''));const ss=subsAll(c||'').filter(sb=>ms.some(m=>m.sub===sb));return ss.flatMap(sb=>ms.filter(m=>m.sub===sb)).concat(ms.filter(m=>!ss.includes(m.sub)))}
@@ -805,7 +818,7 @@ function vMenu(){
  const rowO=(m,i)=>`<div class="mrow ord" data-mid="${esc(m.id)}"><span class="grip" data-grip role="button" aria-label="끌어서 순서 바꾸기">≡</span>${blob(m.img)?`<img src="${blob(m.img)}" alt="">`:`<span class="ph">${esc(String(m.name||'?').slice(0,1))}</span>`}<div><b>${esc(m.name)}</b>${m.hidden?' <span class="tag">숨김</span>':''}<div class="fine">${won(m.price)}</div></div><div class="acts"><input class="ordno" data-ord="${esc(m.id)}" inputmode="numeric" value="${i+1}" aria-label="순서 번호"><button class="btn sm ghost" data-act="mup" data-id="${esc(m.id)}" aria-label="위로">▲</button><button class="btn sm ghost" data-act="mdn" data-id="${esc(m.id)}" aria-label="아래로">▼</button></div></div>`;
  const row=(m,i)=>S.mOrder?rowO(m,i):rowN(m);
  const grp=list=>`<div class="mgrp">${list.map(row).join('')}</div>`;
- return `<div class="bar"><h2>메뉴 관리</h2>${S.assets?'<label class="btn ghost">메뉴 가져오기<input type="file" accept=".json,application/json" data-up="menuimport" hidden></label>':''}<button class="btn ${S.mOrder?'':'ghost'}" data-act="morder">${S.mOrder?'순서 편집 끝':'순서 편집'}</button><button class="btn" data-act="mnew">메뉴 추가</button></div>
+ return `<div class="bar"><h2>메뉴 관리</h2><button class="btn ghost" data-act="menuexport">메뉴·설정 내보내기</button>${S.assets?'<label class="btn ghost">메뉴 가져오기<input type="file" accept=".json,application/json" data-up="menuimport" hidden></label>':''}<button class="btn ${S.mOrder?'':'ghost'}" data-act="morder">${S.mOrder?'순서 편집 끝':'순서 편집'}</button><button class="btn" data-act="mnew">메뉴 추가</button></div>
  ${S.mOrder?'<div class="ordhelp">≡ 손잡이를 꾹 눌러 위아래로 끌거나, 번호를 바꾸거나, ▲▼를 누르세요. 같은 분류 안에서 움직이며 바로 저장되어 모든 태블릿에 반영됩니다.</div>':''}
  ${S.mOrder?'':`<div class="panel" style="margin-bottom:16px"><h3>분류 <span class="fine">큰 분류 왼쪽, 하위 분류 오른쪽 · ‹ › 로 순서 변경</span></h3>${(S.config.categories||[]).map((c,i)=>`<div class="catline"><span class="tag top">${esc(c)}<button data-act="catup" data-i="${i}" aria-label="앞으로">‹</button><button data-act="catdn" data-i="${i}" aria-label="뒤로">›</button><button data-act="catdel" data-i="${i}" aria-label="삭제">×</button></span><span class="fine">하위:</span>${subsOf(c).map((sb,j)=>`<span class="tag">${esc(sb)}<button data-act="subup" data-i="${i}" data-j="${j}" aria-label="앞으로">‹</button><button data-act="subdn" data-i="${i}" data-j="${j}" aria-label="뒤로">›</button><button data-act="subdel" data-i="${i}" data-j="${j}" aria-label="삭제">×</button></span>`).join('')}<input id="newSub-${i}" placeholder="하위 분류 이름" style="max-width:170px;min-height:38px"><button class="btn sm ghost" data-act="subadd" data-i="${i}">하위 추가</button></div>`).join('')||'<span class="fine">분류가 없습니다</span>'}
  <div class="catrow" style="margin-top:8px"><input id="newCat" placeholder="새 큰 분류 이름" style="max-width:260px"><button class="btn ghost" data-act="catadd">큰 분류 추가</button></div></div>`}
@@ -975,6 +988,7 @@ async function act(a,d,b){const c=S.mctx;
  case 'vol':{const p=$('#volpop');const show=p&&p.hidden;if(show&&S.vol.m){S.vol.m=false;if(!S.vol.v)S.vol.v=50;S.volBlocked=false;applyVol();saveVol()}volPop(show);break}
  case 'volmute':S.vol.m=!S.vol.m;if(!S.vol.m&&!S.vol.v)S.vol.v=50;S.volBlocked=false;applyVol();saveVol();volPop(true);break;
  case 'appsettings':closeModal();try{window.TODApp.openSettings()}catch(e){}break;
+ case 'menuexport':menuExport();break;
  case 'morder':S.mOrder=!S.mOrder;counterTab();break;
  case 'mup':case 'mdn':{const m=menuById(d.id);if(!m)return;const g=catOrder(m.cat).filter(x=>gk(x)===gk(m));moveTo(m.id,g.findIndex(x=>x.id===m.id)+1+(a==='mup'?-1:1));break}
  case 'msold':{const m=menuById(d.id);if(m)await w('menu/'+m.id,r=>r.update({soldOut:!m.soldOut}));break}
@@ -1005,10 +1019,11 @@ async function act(a,d,b){const c=S.mctx;
  case 'updcheck':S.upd={loading:true};counterTab();try{S.upd=await window.TOD_API('/api/update/check')}catch(e){S.upd={err:e.code==='update_unreachable'?'업데이트 서버에 연결할 수 없습니다. 서버 컴퓨터의 인터넷 연결을 확인해 주세요.':(e.message||'확인하지 못했습니다')}}counterTab();break;
  case 'updgo':{if(!armed(b))return;b.disabled=true;b.textContent='업데이트 중…';try{const r=await window.TOD_API('/api/update/apply',{});S.upd=null;toast(r.upToDate?'이미 최신 버전입니다':r.restart&&!r.supervised?'업데이트했습니다. 서버 창을 닫았다가 다시 켜 주세요':'버전 '+r.version+'(으)로 업데이트했습니다. 화면이 곧 새로고침됩니다','ok');loadInfo()}catch(e){toast(e.message||'업데이트하지 못했습니다','bad');b.disabled=false;b.textContent='지금 업데이트'}break}
  case 'updback':{if(!armed(b))return;try{const r=await window.TOD_API('/api/update/rollback',{});S.upd=null;toast('버전 '+r.version+'(으)로 되돌렸습니다'+(r.restart&&!r.supervised?'. 서버 창을 다시 켜 주세요':''),'ok');loadInfo()}catch(e){toast(e.message||'되돌리지 못했습니다','bad')}break}
- case 'importgo':{const {d,items}=c;S.mctx={type:'importing',lock:true};openModal('<h2>가져오는 중…</h2><div class="notice" id="impProg">준비 중</div>');
+ case 'importgo':{const {d,items}=c;const applyCfg=!!(document.getElementById('impCfg')||{}).checked;S.mctx={type:'importing',lock:true};openModal('<h2>가져오는 중…</h2><div class="notice" id="impProg">준비 중</div>');
   const cats0=[...(S.config.categories||[])];(d.categories||[]).forEach(x=>{if(typeof x==='string'&&!cats0.includes(x))cats0.push(x)});items.forEach(it=>{if(!cats0.includes(it.cat))cats0.push(it.cat)});
   const sc={...(S.config.subcats||{})};Object.entries(d.subcats||{}).forEach(([k,v])=>{const cur=[...(sc[k]||[])];(Array.isArray(v)?v:[]).forEach(x=>{if(typeof x==='string'&&!cur.includes(x))cur.push(x)});sc[k]=cur});
-  await saveConfig({categories:cats0,subcats:sc});
+  const extra={};if(applyCfg&&d.config&&typeof d.config==='object'){const k=d.config;if(typeof k.storeName==='string')extra.storeName=k.storeName.slice(0,40);if(Array.isArray(k.callReasons))extra.callReasons=k.callReasons.filter(x=>typeof x==='string').slice(0,20);if(k.voice&&typeof k.voice==='object')extra.voice=k.voice;if(Number(k.videoPct))extra.videoPct=Math.max(20,Math.min(60,Number(k.videoPct)))}
+  await saveConfig({categories:cats0,subcats:sc,...extra});
   let ok=0,fail=0;const base=Date.now();
   for(let i=0;i<items.length;i++){const it=items[i];const pr=$('#impProg');if(pr)pr.textContent=(i+1)+' / '+items.length+' · '+it.name;
    try{let img;if(typeof it.image==='string'&&it.image.startsWith('data:image/')){const b=await (await fetch(it.image)).blob();const r=await S.assets.upload(b,{type:b.type||'image/jpeg'});img=r.id}
@@ -1060,7 +1075,7 @@ async function upload(e){const el=e.target;if(!el.dataset||!el.dataset.up)return
   const items=d.items.filter(it=>it&&typeof it.name==='string'&&it.name.trim()&&typeof it.cat==='string'&&it.cat.trim());
   const upd=items.filter(it=>S.menu.some(m=>m.cat===it.cat&&m.name===it.name)).length;
   S.mctx={type:'import',d,items};
-  openModal(`<h2>메뉴 가져오기</h2><div class="notice">${items.length}개 메뉴 · 새로 추가 ${items.length-upd}개 · 이미 있는 메뉴 ${upd}개(가격·설명·사진을 파일 내용으로 바꿈)</div><p class="fine">이미 있는 메뉴의 옵션과 품절 상태는 그대로 둡니다. 사진이 있는 메뉴는 사진도 함께 올립니다.</p><div class="mfoot"><button class="btn ghost" data-act="close">닫기</button><button class="btn" data-act="importgo">가져오기</button></div>`);return}
+  openModal(`<h2>메뉴 가져오기</h2><div class="notice">${items.length}개 메뉴 · 새로 추가 ${items.length-upd}개 · 이미 있는 메뉴 ${upd}개(가격·설명·사진을 파일 내용으로 바꿈)</div><p class="fine">이미 있는 메뉴의 옵션과 품절 상태는 그대로 둡니다. 사진이 있는 메뉴는 사진도 함께 올립니다.</p>${d.config?`<label class="vchk"><input type="checkbox" id="impCfg" checked> 매장 이름·호출 사유·음성 안내 설정도 함께 적용${d.config.storeName?' ('+esc(d.config.storeName)+')':''}</label>`:''}<div class="mfoot"><button class="btn ghost" data-act="close">닫기</button><button class="btn" data-act="importgo">가져오기</button></div>`);return}
  if(el.dataset.up==='video'){const fs=[...(el.files||[])];el.value='';if(!fs.length)return;if(!S.assets)return toast('올리기 권한이 없습니다','bad');
   const LIM=2*1024**3;const big=fs.filter(f=>f.size>LIM);if(big.length)toast(big.map(f=>f.name).join(', ')+': 2GB가 넘어 건너뜁니다','bad');
   let n=0;for(const f of fs.filter(f=>f.size<=LIM)){const lab='올리는 중… ('+(n+1)+'/'+(fs.length-big.length)+') '+f.name;toast(lab);window.TOD_PROGRESS=r=>toast(lab+' · '+Math.round(r*100)+'%');
