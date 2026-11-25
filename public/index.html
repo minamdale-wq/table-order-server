@@ -88,8 +88,8 @@ input[type=range]{padding:0;border:0;accent-color:var(--turf)}
 /* ===== 고객 화면 디자인 (크림 + 숲색 + 금색, 떠 있는 주문 패널) ===== */
 html.cx{color-scheme:light;--bg:#f6efe4;--card:#fffdf8;--ink:#2b2620;--mute:#7c7366;--line:#e8dccb;--turf:#24503a;--turf2:#efe6d6;--gold:#b08b58;--gold2:#dcc7a3;--hot:#24503a;--vov:calc((100vh - var(--vidh)) * .1)}
 html.cx body{background:#14130f}
-.cx .cust{position:relative;display:block;height:100vh;height:100dvh;overflow:hidden;font-size:clamp(14px,min(1.15vw,1.7vh),26px)}
-.cx .cpanel{position:absolute;top:0;left:0;right:0;height:calc(100vh - var(--vidh));height:calc(100dvh - var(--vidh));z-index:2;display:flex;flex-direction:column;overflow:hidden;
+.cx .cust{position:relative;display:block;height:var(--H,100vh);overflow:hidden;font-size:clamp(14px,min(1.15vw,1.7vh),26px)}
+.cx .cpanel{position:absolute;top:0;left:0;right:0;height:calc(var(--H,100vh) - var(--vidh,40vh));z-index:2;display:flex;flex-direction:column;overflow:hidden;
  background:radial-gradient(120% 80% at 50% 0%,#fbf6ee 0%,#f5ecdf 60%,#efe3d1 100%);border-radius:0 0 clamp(22px,2.6vw,44px) clamp(22px,2.6vw,44px);
  box-shadow:0 28px 50px -12px #000000a8,0 10px 18px -8px #0000006b,inset 0 -1px 0 #ffffff80}
 .cx .leafdeco{position:absolute;pointer-events:none;z-index:0;filter:drop-shadow(0 2px 2px #0000001f)}
@@ -663,9 +663,13 @@ function customerShell(){
  v.addEventListener('error',()=>{if(v.getAttribute('src'))setTimeout(vNext,3000)});
  customerParts();onlineUI();
 }
+/* 화면 높이를 직접 재서 주문 칸/동영상 칸을 픽셀로 나눈다 (태블릿 웹뷰마다 vh 계산이 달라서) */
+function custLayout(){const H=window.innerHeight||document.documentElement.clientHeight||800;const v=Math.round(H*(Number(S.config.videoPct)||40)/100);const r=document.documentElement.style;
+ r.setProperty('--H',H+'px');r.setProperty('--vidh',v+'px');r.setProperty('--vov',Math.round((H-v)*.1)+'px')}
+window.addEventListener('resize',()=>{if(document.documentElement.classList.contains('cx'))custLayout()});
 function customerParts(){
  closedUI();const t=me();if(!t||!$('#cgrid'))return;
- document.documentElement.style.setProperty('--vidh',(Number(S.config.videoPct)||40)+'vh');
+ custLayout();
  $('#ctitle').textContent=t.place||t.name||'';const sn=S.config.storeName||'';$('#cstore').textContent=sn;$('#cstore').hidden=!sn;$('.csep').hidden=!sn;$('#lname').textContent=sn||'주문';
  $('#ctest').innerHTML=t.testMode?'<span class="cbadge">테스트 모드 · 실제 주문 아님</span>':'';
  const vis=S.menu.filter(m=>!m.hidden);const cs=cats().filter(c=>vis.some(m=>m.cat===c));
