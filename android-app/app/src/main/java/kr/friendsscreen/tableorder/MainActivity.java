@@ -45,7 +45,17 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.net.HttpURLConnection;
+import java.net.Inet4Address;
+import java.net.InetAddress;
+import java.net.NetworkInterface;
 import java.net.URL;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.atomic.AtomicReference;
 
 /**
  * 테이블 오더 주문용 앱.
@@ -53,7 +63,7 @@ import java.net.URL;
  * 앱이 하는 일: 전체 화면, 화면 꺼짐 방지, 부팅 시 자동 실행, 화면 고정, 연결 끊김 시 자동 재시도, 동영상 소리 자동 재생 허용.
  */
 public class MainActivity extends Activity {
-    static final String DEF_SERVER = "192.168.0.132:8765";
+    static final String DEF_SERVER = "192.168.219.81:8765";
     static final int GREEN = 0xFF24503A, CREAM = 0xFFF6EFE4, PAPER = 0xFFFFFDF8, INK = 0xFF2B2620, MUTE = 0xFF7C7366, GOLD = 0xFFDCC7A3, RED = 0xFFC0392B;
 
     SharedPreferences prefs;
@@ -64,6 +74,8 @@ public class MainActivity extends Activity {
     final Handler h = new Handler(Looper.getMainLooper());
     final Runnable reload = new Runnable() { public void run() { load(); } };
     int taps = 0;
+    int fails = 0;
+    volatile boolean discovering = false;
     long firstTap = 0;
 
     @Override
@@ -160,7 +172,7 @@ public class MainActivity extends Activity {
             }
             @Override
             public void onPageFinished(WebView v, String url) {
-                if (!pageError) offline.setVisibility(View.GONE);
+                if (!pageError) { offline.setVisibility(View.GONE); fails = 0; }
             }
             @Override
             public void onReceivedError(WebView v, int code, String desc, String url) {
@@ -205,10 +217,96 @@ public class MainActivity extends Activity {
 
     void showOffline(String why) {
         pageError = true;
-        offline.setText("매장 서버에 연결할 수 없습니다\n\n" + server() + "\n(" + why + ")\n\n5초 뒤 자동으로 다시 연결합니다");
         offline.setVisibility(View.VISIBLE);
         h.removeCallbacks(reload);
+        if (discovering) return;
+        fails++;
+        if (fails >= 2) {
+            // 두 번 연속 실패하면 매장 와이파이 안에서 서버를 직접 찾는다 (서버 주소가 바뀐 경우)
+            discovering = true;
+            offline.setText("매장 서버에 연결할 수 없습니다\n\n" + server() + "\n\n매장 와이파이에서 서버를 찾는 중…");
+            new Thread(() -> {
+                final String f = discover();
+                h.post(() -> {
+                    discovering = false;
+                    if (f != null && !f.equals(server())) {
+                        prefs.edit().putString("server", f).apply();
+                        toast("매장 서버를 찾았습니다: " + f);
+                    }
+                    if (f != null) fails = 0;
+                    if (inSetup) return;
+                    if (f == null) {
+                        offline.setText("매장 서버를 찾지 못했습니다\n\n서버 컴퓨터가 켜져 있는지, 이 태블릿이 매장 와이파이에 연결돼 있는지 확인해 주세요\n\n잠시 뒤 다시 찾습니다");
+                        h.postDelayed(reload, 15000);
+                    } else load();
+                });
+            }).start();
+            return;
+        }
+        offline.setText("매장 서버에 연결할 수 없습니다\n\n" + server() + "\n(" + why + ")\n\n5초 뒤 자동으로 다시 연결합니다");
         h.postDelayed(reload, 5000);
+    }
+
+    /* ---------- 매장 서버 자동 찾기 ---------- */
+    static String probeInfo(String hostPort, int cto, int rto) {
+        HttpURLConnection c = null;
+        try {
+            c = (HttpURLConnection) new URL("http://" + hostPort + "/api/info").openConnection();
+            c.setConnectTimeout(cto);
+            c.setReadTimeout(rto);
+            c.setUseCaches(false);
+            if (c.getResponseCode() != 200) return null;
+            String b = read(c.getInputStream());
+            return (b.contains("\"addresses\"") && b.contains("\"startedAt\"")) ? b : null;
+        } catch (Exception e) {
+            return null;
+        } finally { if (c != null) c.disconnect(); }
+    }
+
+    static List<String> localPrefixes() {
+        List<String> out = new ArrayList<>();
+        try {
+            for (NetworkInterface ni : Collections.list(NetworkInterface.getNetworkInterfaces())) {
+                if (!ni.isUp() || ni.isLoopback()) continue;
+                for (InetAddress a : Collections.list(ni.getInetAddresses())) {
+                    if (a instanceof Inet4Address && a.isSiteLocalAddress()) {
+                        String ip = a.getHostAddress();
+                        String p = ip.substring(0, ip.lastIndexOf('.') + 1);
+                        if (!out.contains(p)) out.add(p);
+                    }
+                }
+            }
+        } catch (Exception ignored) { }
+        return out;
+    }
+
+    /** 저장된 주소 → 기본 주소 → 같은 와이파이의 모든 주소(포트 8765 먼저) 순서로 찾는다. 못 찾으면 null */
+    String discover() {
+        if (probeInfo(server(), 1500, 2500) != null) return server();
+        if (!DEF_SERVER.equals(server()) && probeInfo(DEF_SERVER, 1500, 2500) != null) return DEF_SERVER;
+        int[] ports = {8765, 8899, 9080, 18080, 28080};
+        List<String> prefixes = localPrefixes();
+        ExecutorService ex = Executors.newFixedThreadPool(48);
+        try {
+            for (int port : ports) {
+                for (String pre : prefixes) {
+                    final AtomicReference<String> found = new AtomicReference<>(null);
+                    List<Future<?>> fs = new ArrayList<>();
+                    for (int i = 1; i <= 254; i++) {
+                        final String hp = pre + i + ":" + port;
+                        fs.add(ex.submit(() -> {
+                            if (found.get() == null && probeInfo(hp, 450, 1500) != null) found.compareAndSet(null, hp);
+                        }));
+                    }
+                    for (Future<?> f : fs) {
+                        if (found.get() != null) break;
+                        try { f.get(); } catch (Exception ignored) { }
+                    }
+                    if (found.get() != null) return found.get();
+                }
+            }
+        } finally { ex.shutdownNow(); }
+        return null;
     }
 
     String BuildConfigVersion() {
@@ -308,7 +406,7 @@ public class MainActivity extends Activity {
         srv.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_VARIATION_URI);
         box(srv);
         col.addView(srv);
-        col.addView(text("Mac 서버 창에 나오는 주소에서 http:// 와 /#t… 를 뺀 부분 (예: 192.168.0.132:8765)", 14, MUTE, false));
+        col.addView(text("보통은 건드릴 필요 없습니다. 앱이 매장 와이파이에서 서버를 자동으로 찾고, 서버 주소가 바뀌어도 스스로 다시 찾습니다.", 14, MUTE, false));
 
         col.addView(label("이 태블릿 번호"));
         final String[] chosen = { prefs.getString("tab", "") };
@@ -345,6 +443,20 @@ public class MainActivity extends Activity {
         final TextView status = text("", 17, GREEN, true);
         status.setPadding(0, dp(16), 0, 0);
 
+        Button find = button("서버 자동으로 찾기", false);
+        final Runnable doFind = () -> {
+            status.setTextColor(MUTE);
+            status.setText("매장 와이파이에서 서버를 찾는 중… (10초쯤 걸립니다)");
+            new Thread(() -> {
+                final String f = discover();
+                h.post(() -> {
+                    if (f != null) { srv.setText(f); status.setTextColor(GREEN); status.setText("✓ 매장 서버를 찾았습니다: " + f); }
+                    else { status.setTextColor(RED); status.setText("✕ 서버를 찾지 못했습니다. 서버 컴퓨터가 켜져 있고, 이 태블릿이 매장 와이파이에 연결됐는지 확인해 주세요"); }
+                });
+            }).start();
+        };
+        find.setOnClickListener(v -> doFind.run());
+
         Button test = button("연결 확인", false);
         test.setOnClickListener(v -> {
             final String a = clean(srv.getText().toString());
@@ -365,8 +477,10 @@ public class MainActivity extends Activity {
                 h.post(() -> { status.setTextColor(fr.startsWith("✓") ? GREEN : RED); status.setText(fr); });
             }).start();
         });
+        col.addView(find);
         col.addView(test);
         col.addView(status);
+        if (prefs.getString("tab", null) == null) doFind.run();   // 처음 설치했을 때는 바로 찾아서 채워 둔다
 
         Button home = button("기본 홈 앱으로 지정 (켜자마자 자동 실행)", false);
         home.setOnClickListener(v -> {
