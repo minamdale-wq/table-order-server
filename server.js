@@ -181,7 +181,7 @@ function lr(l, r, w) { const sp = w - dw(l) - dw(r); if (sp >= 1) return l + ' '
 const wonS = n => (Number(n) || 0).toLocaleString('ko-KR') + '원';
 function roomName(o) { const t = store.get('tablets/' + o.tabletId); const d = t && t.data ? t.data : {}; return String(d.voiceName || (d.role !== 'counter' && Number(d.no) ? d.no + '번방' : '') || o.place || o.tabletName || o.tabletId || '').trim(); }
 function receipt(o, pc, opts) {
-  const W = pc.paper === '58' ? 32 : 48, ESC = 0x1B, GS = 0x1D, FS = 0x1C, parts = [];
+  const W = pc.paper === '58' ? 32 : pc.paper === '80n' ? 42 : 48, ESC = 0x1B, GS = 0x1D, FS = 0x1C, parts = [];
   const raw = (...b) => parts.push(Buffer.from(b)), txt = s => parts.push(encKR(s));
   const cfg = (store.get('config/main') || {}).data || {};
   raw(ESC, 0x40); if (pc.kor !== false) raw(FS, 0x26);

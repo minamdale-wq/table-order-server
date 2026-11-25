@@ -941,7 +941,7 @@ function vSettings(){const c=S.config;const t=me()||{};
  <label class="vchk"><input type="checkbox" id="pOn"${pc.on?' checked':''}> 주문서 출력하기</label>
  <div class="vgrid"><label>COM 포트<input id="pPort" list="pPorts" value="${esc(pc.port)}" placeholder="예: COM3"><datalist id="pPorts">${(S.pPorts||[]).map(x=>`<option value="${esc(x)}">`).join('')}</datalist></label>
  <label>속도(Baud)<select id="pBaud">${[9600,19200,38400,57600,115200].map(x=>`<option${Number(pc.baud)===x?' selected':''}>${x}</option>`).join('')}</select></label>
- <label>용지<select id="pPaper"><option value="80"${pc.paper==='80'?' selected':''}>80mm</option><option value="58"${pc.paper==='58'?' selected':''}>58mm</option></select></label>
+ <label>용지<select id="pPaper"><option value="80"${pc.paper==='80'?' selected':''}>80mm (한 줄 48칸)</option><option value="80n"${pc.paper==='80n'?' selected':''}>80mm 좁게 (한 줄 42칸)</option><option value="58"${pc.paper==='58'?' selected':''}>58mm</option></select></label>
  <label>출력 시점<select id="pWhen"><option value="accept"${pc.when==='accept'?' selected':''}>수락을 누를 때</option><option value="new"${pc.when==='new'?' selected':''}>주문이 들어오자마자</option><option value="manual"${pc.when==='manual'?' selected':''}>'출력' 버튼으로만</option></select></label>
  <label>장수<select id="pCopies">${[1,2,3].map(x=>`<option${Number(pc.copies)===x?' selected':''}>${x}</option>`).join('')}</select></label></div>
  <label class="vchk"><input type="checkbox" id="pKor"${pc.kor?' checked':''}> 한글 모드 (한글이 깨지면 끄거나 켜 보세요)</label>
