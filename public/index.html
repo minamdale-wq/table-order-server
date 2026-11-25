@@ -32,7 +32,7 @@ input[type=range]{padding:0;border:0;accent-color:var(--turf)}
 .splash{min-height:100dvh;display:grid;place-content:center;text-align:center;padding:24px;gap:8px}
 .splash b{font-size:22px}
 /* ---------- 고객 화면 ---------- */
-.cust{height:100dvh;display:grid;grid-template-rows:auto minmax(0,1fr) var(--vidh);font-size:clamp(16px,1.1vw,26px)}
+.cust{height:100vh;height:100dvh;display:grid;grid-template-rows:auto minmax(0,1fr) var(--vidh);font-size:clamp(16px,1.1vw,26px)}
 .chead{display:flex;align-items:center;gap:1em;background:var(--turf);color:#fff;padding:.55em 1.2em}
 .logo{color:#fff;font-weight:800;font-size:1.3em;min-height:44px;letter-spacing:-.02em}
 .ctitle{font-weight:800;font-size:1.3em;flex:1}
@@ -86,10 +86,10 @@ input[type=range]{padding:0;border:0;accent-color:var(--turf)}
 @media (max-aspect-ratio:4/5){.cbody{grid-template-columns:minmax(0,1fr) clamp(280px,36vw,460px);grid-template-rows:auto minmax(0,1fr)}.cats{grid-column:1/-1;flex-direction:row;overflow-x:auto}.cats button{flex:none}}
 
 /* ===== 고객 화면 디자인 (크림 + 숲색 + 금색, 떠 있는 주문 패널) ===== */
-html.cx{color-scheme:light;--bg:#f6efe4;--card:#fffdf8;--ink:#2b2620;--mute:#7c7366;--line:#e8dccb;--turf:#24503a;--turf2:#efe6d6;--gold:#b08b58;--gold2:#dcc7a3;--hot:#24503a;--vov:calc((100dvh - var(--vidh)) * .1)}
+html.cx{color-scheme:light;--bg:#f6efe4;--card:#fffdf8;--ink:#2b2620;--mute:#7c7366;--line:#e8dccb;--turf:#24503a;--turf2:#efe6d6;--gold:#b08b58;--gold2:#dcc7a3;--hot:#24503a;--vov:calc((100vh - var(--vidh)) * .1)}
 html.cx body{background:#14130f}
-.cx .cust{position:relative;display:block;height:100dvh;overflow:hidden;font-size:clamp(14px,min(1.15vw,1.7vh),26px)}
-.cx .cpanel{position:absolute;top:0;left:0;right:0;height:calc(100dvh - var(--vidh));z-index:2;display:flex;flex-direction:column;overflow:hidden;
+.cx .cust{position:relative;display:block;height:100vh;height:100dvh;overflow:hidden;font-size:clamp(14px,min(1.15vw,1.7vh),26px)}
+.cx .cpanel{position:absolute;top:0;left:0;right:0;height:calc(100vh - var(--vidh));height:calc(100dvh - var(--vidh));z-index:2;display:flex;flex-direction:column;overflow:hidden;
  background:radial-gradient(120% 80% at 50% 0%,#fbf6ee 0%,#f5ecdf 60%,#efe3d1 100%);border-radius:0 0 clamp(22px,2.6vw,44px) clamp(22px,2.6vw,44px);
  box-shadow:0 28px 50px -12px #000000a8,0 10px 18px -8px #0000006b,inset 0 -1px 0 #ffffff80}
 .cx .leafdeco{position:absolute;pointer-events:none;z-index:0;filter:drop-shadow(0 2px 2px #0000001f)}
@@ -229,7 +229,7 @@ html.kx body{background:radial-gradient(120% 60% at 50% 0%,#fbf6ee 0%,#f5ecdf 55
 /* ---------- 모달 ---------- */
 .modal{position:fixed;inset:0;background:#000000b8;display:grid;place-items:center;padding:16px;z-index:20}
 .modal[hidden]{display:none}
-.sheet{background:var(--card);border-radius:20px;box-shadow:0 24px 70px #000a;width:min(760px,100%);max-height:92dvh;overflow:auto;padding:clamp(18px,2vw,32px);display:grid;gap:14px}
+.sheet{background:var(--card);border-radius:20px;box-shadow:0 24px 70px #000a;width:min(760px,100%);max-height:92vh;height:92dvh;overflow:auto;padding:clamp(18px,2vw,32px);display:grid;gap:14px}
 .sheet.big{font-size:clamp(16px,1.1vw,26px);width:min(1000px,100%)}
 .sheet h2{margin:0;font-size:1.6em;line-height:1.15}
 .sheet fieldset{border:0;padding:0;margin:0;display:grid;gap:.5em}
@@ -320,7 +320,7 @@ details summary{cursor:pointer;min-height:44px;display:flex;align-items:center;f
 @media(max-width:900px){.board{grid-template-columns:minmax(0,1fr)}}
 @media(max-width:600px){table{font-size:13px}.stack thead{display:none}.stack tr{display:grid;padding-block:10px}.stack td{display:flow-root;border:0;padding:3px 0;padding-inline-start:8em;text-align:start}.stack td::before{content:attr(data-l);float:inline-start;width:7.5em;margin-inline-start:-8em;white-space:normal;color:var(--mute)}.stack td:empty{display:none}.crow{grid-template-columns:minmax(0,1fr) 90px auto}}
 @media(prefers-reduced-motion:reduce){#toast{transition:none}}
-</style><script>new MutationObserver(()=>{for(const c of document.querySelectorAll('.stack td:not([data-l])')){let i=0,p=c;while(p=p.previousElementSibling)i+=p.colSpan;c.dataset.l=c.closest('table').rows[0].cells[i]?.textContent||''}}).observe(document,{childList:true,subtree:true})</script></head><body>
+</style><script>new MutationObserver(()=>{for(const c of document.querySelectorAll('.stack td:not([data-l])')){let i=0,p=c;while(p=p.previousElementSibling)i+=p.colSpan;c.dataset.l=(c.closest('table').rows[0].cells[i]||{}).textContent||''}}).observe(document,{childList:true,subtree:true})</script></head><body>
 <div id="app"><div class="splash">불러오는 중…</div></div>
 <div id="modal" class="modal" hidden></div>
 <div id="toast" role="status" aria-live="polite"></div>
