@@ -153,6 +153,7 @@ function applyOps(ops, admin) {
       if (before === 'new' && after === 'accepted') printQ.push({ path: o.path, when: 'accept' });
       if (!cur && after === 'new') printQ.push({ path: o.path, when: 'new' });
     }
+    if (o.path.startsWith('calls/') && o.op === 'set' && !cur && o.data.status === 'open') printQ.push({ path: o.path, when: 'call' });
     if (o.op === 'delete') { if (!cur) continue; store.delete(o.path); ch.push({ p: o.path, v: null }); continue; }
     if (o.op === 'set' && o.path.startsWith('orders/') && sameOrder(cur, o.data)) continue; // 같은 주문 재전송은 무시
     const v = { data: o.op === 'set' ? o.data : merge(cur.data, o.data), version: (cur ? cur.version : 0) + 1, updatedAt: now };
@@ -234,9 +235,28 @@ function printFail(label, e) {
   const at = Date.now();
   sysWrite([{ op: 'set', path: 'incidents/p' + at.toString(36), data: { tabletId: 'printer', tabletName: '주문서 프린터', kind: '프린터 오류', source: 'server', at, endAt: at, note: label + ' · ' + e.message, dateKey: dayKey(new Date(at)) } }]);
 }
+function callSlip(c, pc) {
+  const W = pc.paper === '58' ? 32 : pc.paper === '80n' ? 42 : 48, ESC = 0x1B, GS = 0x1D, FS = 0x1C, parts = [];
+  const raw = (...b) => parts.push(Buffer.from(b)), txt = s => parts.push(encKR(s));
+  raw(ESC, 0x40); if (pc.kor !== false) raw(FS, 0x26);
+  raw(ESC, 0x61, 1); raw(GS, 0x21, 0x11); txt('직 원 호 출\n\n'); txt(cutW(roomName(c), Math.floor(W / 2)) + '\n'); raw(GS, 0x21, 0);
+  if (c.reason) { raw(GS, 0x21, 0x01); txt('\n' + cutW(c.reason, W) + '\n'); raw(GS, 0x21, 0); }
+  const d = new Date(c.at || Date.now());
+  txt('\n' + d.toLocaleString('ko-KR', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' }) + (c.test ? '  [테스트]' : '') + '\n');
+  raw(ESC, 0x61, 0); raw(ESC, 0x64, 4); if (pc.cut !== false) raw(GS, 0x56, 0x42, 0x00);
+  return Buffer.concat(parts);
+}
 function autoPrint(p, when) {
   const cfg = (store.get('config/main') || {}).data || {}, pc = cfg.printer || {};
-  if (!pc.on || !pc.port || (pc.when || 'accept') !== when) return;
+  if (!pc.on || !pc.port) return;
+  if (when === 'call') {
+    if (pc.calls === false) return;
+    const d = store.get(p); if (!d || !d.data) return;
+    const c = { id: p.split('/')[1], ...d.data };
+    printJob({ ...pc, copies: 1 }, callSlip(c, pc), roomName(c) + ' 직원 호출').catch(e => printFail(roomName(c) + ' 호출', e));
+    return;
+  }
+  if ((pc.when || 'new') !== when) return;
   const d = store.get(p); if (!d || !d.data) return;
   const o = { id: p.split('/')[1], ...d.data };
   printJob(pc, receipt(o, pc), roomName(o) + ' ' + (o.items || []).length + '개 메뉴').catch(e => printFail(roomName(o), e));
@@ -248,6 +268,10 @@ async function listPorts() {
   }
   try { return fs.readdirSync('/dev').filter(n => /^(cu\.|tty\.usb|ttyUSB|ttyACM|ttyS\d)/.test(n)).map(n => '/dev/' + n); } catch (e) { return []; }
 }
+setTimeout(() => { try {
+  const c = store.get('config/main'); const pc = c && c.data && c.data.printer;
+  if (pc && !pc.m146) { sysWrite([{ op: 'update', path: 'config/main', data: { printer: { ...pc, when: pc.when === 'accept' ? 'new' : (pc.when || 'new'), calls: pc.calls !== false, m146: true } } }]); log('프린터 설정: 주문이 들어오면 바로 출력, 직원 호출도 출력으로 바꿨습니다'); }
+} catch (e) { } }, 1500);
 /* ---------------- 손님 태블릿 안내 음성: 윈도우 한국어 음성(SAPI)으로 WAV 생성 ---------------- */
 const TTSDIR = path.join(DATA, 'tts');
 async function ttsWav(text) {

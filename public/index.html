@@ -181,6 +181,20 @@ html.cx .modal .qty button{border-color:var(--gold2);background:#fffdf8}html.cx 
  .cx .hbtn{min-height:46px;padding:.3em .95em}
 }
 @media (max-aspect-ratio:9/14){.cx .cbody{grid-template-columns:minmax(0,1fr) clamp(220px,36vw,420px)}.cx .grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (max-aspect-ratio:4/5){
+ html[data-cols="3"].cx .grid{grid-template-columns:repeat(3,minmax(0,1fr));gap:.6em}
+ html[data-cols="4"].cx .grid{grid-template-columns:repeat(4,minmax(0,1fr));gap:.5em}
+ html[data-cols="3"].cx .mcard,html[data-cols="4"].cx .mcard{border-radius:14px}
+ html[data-cols="3"].cx .mcard img,html[data-cols="3"].cx .mcard .ph,html[data-cols="4"].cx .mcard img,html[data-cols="4"].cx .mcard .ph{border-radius:14px 14px 0 0}
+ html[data-cols="3"].cx .mcard .mn{font-size:.9em;padding:.5em .6em 0}
+ html[data-cols="4"].cx .mcard .mn{font-size:.78em;padding:.45em .5em 0}
+ html[data-cols="3"].cx .mcard .md,html[data-cols="4"].cx .mcard .md{display:none}
+ html[data-cols="3"].cx .mcard .mp{font-size:.92em;padding:.3em 2.3em .55em .6em}
+ html[data-cols="4"].cx .mcard .mp{font-size:.8em;padding:.25em 2em .5em .5em}
+ html[data-cols="3"].cx .mcard .plus{width:1.55em;height:1.55em;right:.5em;bottom:.5em}
+ html[data-cols="4"].cx .mcard .plus{width:1.4em;height:1.4em;right:.4em;bottom:.4em}
+ html[data-cols="3"].cx .mcard .mo,html[data-cols="4"].cx .mcard .mo{font-size:.62em}
+}
 
 /* ===== 주문받는 태블릿 디자인 (고객 화면과 같은 크림·숲색·금색) ===== */
 html.kx{color-scheme:light;--bg:#f6efe4;--card:#fffdf8;--ink:#2b2620;--mute:#7c7366;--line:#e8dccb;--turf:#24503a;--turf2:#efe6d6;--gold:#b08b58;--gold2:#dcc7a3;--hot:#c8632d;--ok:#2f8a55;--bad:#c0392b;--warn:#a8741a}
@@ -226,7 +240,7 @@ html.kx body{background:radial-gradient(120% 60% at 50% 0%,#fbf6ee 0%,#f5ecdf 55
 .kx .dev h1{font-family:"Noto Serif KR","Noto Serif CJK KR",serif;color:#3a3024}
 .kx .devbtn{background:#fffdf8;border-color:#eadfcd}
 .kx .sheet{background:#fffdf9;border:1px solid #eadfcd}
-.cnote{position:absolute;left:50%;bottom:1.2em;transform:translateX(-50%);z-index:6;display:flex;flex-direction:column;gap:.5em;width:min(92%,40em);pointer-events:none}.cnote[hidden]{display:none}
+.cnote{position:absolute;left:1em;bottom:1.2em;z-index:6;display:flex;flex-direction:column;gap:.5em;width:min(58%,40em);pointer-events:none}.cnote .cn{font-size:1em!important}.cnote .cn.ok{font-size:1.12em!important}.cnote[hidden]{display:none}
 .cnote .cn{display:flex;align-items:center;gap:.7em;padding:.85em 1.3em;border-radius:999px;font-weight:800;font-size:1.15em;box-shadow:0 12px 30px -10px #0008}
 .cnote .cn.wait{background:#fff7e6;color:#6b4a00;border:1.5px solid #e9c46a}.cnote .cn.ok{background:#1f4632;color:#fff;border:1.5px solid #1f4632;font-size:1.3em}
 .cnote .cn i{flex:none;display:grid;place-items:center;width:1.5em;height:1.5em;font-style:normal}
@@ -540,7 +554,7 @@ async function menuExport(){if(!S.menu.length)return toast('내보낼 메뉴가 
  const vAll=vids(),yt=vAll.filter(v=>okYt(v.yt)).map(v=>({yt:v.yt,name:v.name||''})),vFiles=vAll.length-yt.length;
  const tabs=(S.tablets||[]).map(t=>({id:t.id,no:t.no,name:t.name,role:t.role,place:t.place||'',model:t.model||'',note:t.note||'',voiceName:t.voiceName||'',testMode:!!t.testMode}));
  const d={format:'table-order-menu',version:2,note:(c.storeName||'테이블 오더')+' 메뉴·설정 '+new Date().toLocaleString('ko-KR'),categories:c.categories||[],subcats:c.subcats||{},
-  config:{storeName:c.storeName||'',callReasons:c.callReasons||[],voice:c.voice||undefined,videoPct:c.videoPct||undefined,printer:c.printer||undefined,closedImg,youtube:yt,videoFiles:vFiles},tablets:tabs,items};
+  config:{storeName:c.storeName||'',callReasons:c.callReasons||[],voice:c.voice||undefined,videoPct:c.videoPct||undefined,gridCols:c.gridCols||undefined,printer:c.printer||undefined,closedImg,youtube:yt,videoFiles:vFiles},tablets:tabs,items};
  const day=new Date();const fn='메뉴-설정-'+day.getFullYear()+String(day.getMonth()+1).padStart(2,'0')+String(day.getDate()).padStart(2,'0')+'.json';
  try{dlFile(fn,JSON.stringify(d));S.mctx=null;closeModal();toast(items.length+'개 메뉴와 설정을 내보냈습니다'+(miss?' (사진 '+miss+'개 못 가져옴)':'')+(vFiles?' · 동영상 파일 '+vFiles+'개는 파일에 들어가지 않으니 따로 올려 주세요':'')+'. 다른 서버의 메뉴 관리 → 가져오기로 넣으세요','ok')}
  catch(x){S.mctx=null;closeModal();toast('파일을 내려받지 못했습니다','bad')}}
@@ -563,9 +577,9 @@ setInterval(()=>{if(S.role!=='counter'||!S.beep)return;const sec=Number(vcfg().r
  for(const [k,tid,kind,reason,test] of items){live[k]=1;if(!S.annLast[k]){S.annLast[k]=now;continue}if(now-S.annLast[k]>=sec*1000&&VQ.length<6){S.annLast[k]=now;announce(tid,kind,reason,test)}}
  for(const k in S.annLast)if(!live[k])delete S.annLast[k]},2000);
 /* ---- 주문서 프린터 (매장 서버에서 COM 포트로 출력) ---- */
-const PDEF={on:false,port:'',baud:9600,paper:'80',when:'accept',kor:true,cut:true,copies:1};
+const PDEF={on:false,port:'',baud:9600,paper:'80',when:'new',calls:true,kor:true,cut:true,copies:1};
 const pcfg=()=>({...PDEF,...(S.config.printer||{})});
-const readPrinterForm=()=>{const g=id=>document.getElementById(id);return{on:g('pOn').checked,port:(v=>/^com\d/i.test(v)?v.toUpperCase():v)(g('pPort').value.trim()),baud:Number(g('pBaud').value)||9600,paper:g('pPaper').value,when:g('pWhen').value,kor:g('pKor').checked,cut:g('pCut').checked,copies:Math.max(1,Math.min(3,Number(g('pCopies').value)||1))}};
+const readPrinterForm=()=>{const g=id=>document.getElementById(id);return{on:g('pOn').checked,port:(v=>/^com\d/i.test(v)?v.toUpperCase():v)(g('pPort').value.trim()),baud:Number(g('pBaud').value)||9600,paper:g('pPaper').value,when:g('pWhen').value,kor:g('pKor').checked,cut:g('pCut').checked,calls:g('pCalls').checked,m146:true,copies:Math.max(1,Math.min(3,Number(g('pCopies').value)||1))}};
 const readVoiceForm=()=>{const g=id=>document.getElementById(id);const o={};if(g('vOn'))o.on=g('vOn').checked;if(g('vOrder'))o.order=g('vOrder').value.trim()||VDEF.order;if(g('vCall'))o.call=g('vCall').value.trim()||VDEF.call;if(g('vRate'))o.rate=Number(g('vRate').value)||1;if(g('vRep'))o.rep=Number(g('vRep').value)||1;if(g('vReason'))o.reason=g('vReason').checked;if(g('vRepeat'))o.repeatSec=Number(g('vRepeat').value)||0;if(g('vCustOn'))o.custOn=g('vCustOn').checked;if(g('vCustOrder'))o.custOrder=g('vCustOrder').value.trim()||VDEF.custOrder;if(g('vCustCall'))o.custCall=g('vCustCall').value.trim()||VDEF.custCall;return o};
 const gk=m=>{const ss=subsAll(m.cat||'');return (m.cat||'')+'\u0001'+(ss.includes(m.sub)?m.sub:'\u0002')};
 function catOrder(c){const ms=S.menu.filter(m=>(m.cat||'')===(c||''));const ss=subsAll(c||'').filter(sb=>ms.some(m=>m.sub===sb));return ss.flatMap(sb=>ms.filter(m=>m.sub===sb)).concat(ms.filter(m=>!ss.includes(m.sub)))}
@@ -716,7 +730,7 @@ function customerShell(){
  customerParts();onlineUI();
 }
 /* 화면 높이를 직접 재서 주문 칸/동영상 칸을 픽셀로 나눈다 (태블릿 웹뷰마다 vh 계산이 달라서) */
-function custLayout(){const H=window.innerHeight||document.documentElement.clientHeight||800;const v=Math.round(H*(Number(S.config.videoPct)||40)/100);const r=document.documentElement.style;
+function custLayout(){document.documentElement.dataset.cols=String(Number(S.config.gridCols)||3);const H=window.innerHeight||document.documentElement.clientHeight||800;const v=Math.round(H*(Number(S.config.videoPct)||40)/100);const r=document.documentElement.style;
  r.setProperty('--H',H+'px');r.setProperty('--vidh',v+'px');r.setProperty('--vov',Math.round((H-v)*.1)+'px')}
 window.addEventListener('resize',()=>{if(document.documentElement.classList.contains('cx'))custLayout()});
 function customerParts(){
@@ -944,16 +958,17 @@ function vSettings(){const c=S.config;const t=me()||{};
  <span class="fine">유튜브는 주문용 태블릿이 인터넷에 연결되어 있어야 나옵니다. 영상 주인이 퍼가기를 막은 영상은 재생되지 않고 다음 영상으로 넘어가며, 영상에 따라 유튜브 광고가 나올 수 있습니다.</span>
  ${S.assetUsage?`<span class="fine">올린 파일 ${S.assetUsage.files}개 · ${MB(S.assetUsage.bytes)}${S.assetUsage.freeBytes!=null?' · 서버 디스크 남은 공간 '+(S.assetUsage.freeBytes/1073741824).toFixed(1)+'GB':''}</span>`:''}
  <span class="fine">mp4 또는 webm, 파일 하나당 최대 2GB. 여러 개를 올리면 순서대로 이어 재생하고, 여러 파일을 한 번에 골라도 됩니다. 주문용 태블릿은 켤 때마다 소리 없이 시작합니다. 동영상 오른쪽 아래 스피커 버튼으로 소리를 켜고 크기를 조절할 수 있습니다 (크기는 태블릿마다 기억).</span>
- <label class="form"><span>동영상 영역 높이: 화면의 <b id="vpv">${Number(c.videoPct)||40}</b>% (주문 6 : 동영상 4 = 40%)</span><input type="range" id="vidPct" min="15" max="60" value="${Number(c.videoPct)||40}"></label></div>
+ <label class="form"><span>동영상 영역 높이: 화면의 <b id="vpv">${Number(c.videoPct)||40}</b>% (주문 6 : 동영상 4 = 40%)</span><input type="range" id="vidPct" min="15" max="60" value="${Number(c.videoPct)||40}"></label><label class="form"><span>주문 화면 메뉴 칸 (세로 화면 한 줄에)</span><select id="gridCols">${[[2,'2개 · 크게 (한 화면에 약 4~6개)'],[3,'3개 · 보통 (한 화면에 약 9개)'],[4,'4개 · 작게 (한 화면에 약 12~16개)']].map(([x,l])=>`<option value="${x}"${(Number(c.gridCols)||3)===x?' selected':''}>${l}</option>`).join('')}</select></label></div>
  <div class="panel"><h3>영업 준비 중 화면</h3><span class="fine">위쪽 '영업 종료'를 누르면 주문용 태블릿 6대에 이 그림이 전체 화면으로 나오고 주문이 막힙니다. '영업 시작'을 누르면 다시 주문 화면으로 돌아갑니다.</span>${closedSrc()?`<img src="${esc(closedSrc())}" alt="준비 중 화면" style="width:100%;max-height:220px;object-fit:contain;border-radius:12px;background:#0d1a14">`:'<span class="fine">그림이 없으면 "영업 준비 중" 글씨만 나옵니다.</span>'}<div class="catrow">${S.assets?'<label class="btn ghost">그림 바꾸기<input type="file" accept="image/*" data-up="closedimg" hidden></label>':''}${S.config.closedImg&&window.TOD_API?'<button class="btn ghost" data-act="closedimgreset">기본 그림으로</button>':''}</div></div>
  ${window.TOD_API?(()=>{const pc=pcfg();return `<div class="panel"><h3>주문서 프린터 <span class="fine">매장 서버 컴퓨터의 COM 포트</span></h3>
  <label class="vchk"><input type="checkbox" id="pOn"${pc.on?' checked':''}> 주문서 출력하기</label>
  <div class="vgrid"><label>COM 포트<input id="pPort" list="pPorts" value="${esc(pc.port)}" placeholder="예: COM3"><datalist id="pPorts">${(S.pPorts||[]).map(x=>`<option value="${esc(x)}">`).join('')}</datalist></label>
  <label>속도(Baud)<select id="pBaud">${[9600,19200,38400,57600,115200].map(x=>`<option${Number(pc.baud)===x?' selected':''}>${x}</option>`).join('')}</select></label>
  <label>용지<select id="pPaper"><option value="80"${pc.paper==='80'?' selected':''}>80mm (한 줄 48칸)</option><option value="80n"${pc.paper==='80n'?' selected':''}>80mm 좁게 (한 줄 42칸)</option><option value="58"${pc.paper==='58'?' selected':''}>58mm</option></select></label>
- <label>출력 시점<select id="pWhen"><option value="accept"${pc.when==='accept'?' selected':''}>수락을 누를 때</option><option value="new"${pc.when==='new'?' selected':''}>주문이 들어오자마자</option><option value="manual"${pc.when==='manual'?' selected':''}>'출력' 버튼으로만</option></select></label>
+ <label>주문서 출력 시점<select id="pWhen"><option value="new"${pc.when==='new'?' selected':''}>주문이 들어오자마자 (수락과 상관없이)</option><option value="accept"${pc.when==='accept'?' selected':''}>수락을 누를 때</option><option value="manual"${pc.when==='manual'?' selected':''}>'출력' 버튼으로만</option></select></label>
  <label>장수<select id="pCopies">${[1,2,3].map(x=>`<option${Number(pc.copies)===x?' selected':''}>${x}</option>`).join('')}</select></label></div>
  <label class="vchk"><input type="checkbox" id="pKor"${pc.kor?' checked':''}> 한글 모드 (한글이 깨지면 끄거나 켜 보세요)</label>
+ <label class="vchk"><input type="checkbox" id="pCalls"${pc.calls!==false?' checked':''}> 직원 호출도 출력 (호출이 들어오자마자)</label>
  <label class="vchk"><input type="checkbox" id="pCut"${pc.cut?' checked':''}> 출력 후 용지 자르기</label>
  <div class="catrow"><button class="btn ghost" data-act="pports">포트 찾기</button><button class="btn ghost" data-act="ptest">테스트 출력</button><button class="btn" data-act="psave">프린터 저장</button></div>
  <span class="fine">${S.pPorts?('이 서버에서 찾은 포트: '+(S.pPorts.length?S.pPorts.map(esc).join(', '):'없음')):'포트 이름을 모르면 \'포트 찾기\'를 누르세요.'} 프린터 3대 중 출력할 1대의 포트를 고르고, 테스트 출력으로 확인하세요.</span></div>`})():''}
@@ -1079,7 +1094,7 @@ async function act(a,d,b){const c=S.mctx;
  case 'importgo':{const {d,items}=c;const applyCfg=!!(document.getElementById('impCfg')||{}).checked;const doSync=!!(document.getElementById('impSync')||{}).checked;S.mctx={type:'importing',lock:true};openModal('<h2>가져오는 중…</h2><div class="notice" id="impProg">준비 중</div>');
   const cats0=[...(S.config.categories||[])];(d.categories||[]).forEach(x=>{if(typeof x==='string'&&!cats0.includes(x))cats0.push(x)});items.forEach(it=>{if(!cats0.includes(it.cat))cats0.push(it.cat)});
   const sc={...(S.config.subcats||{})};Object.entries(d.subcats||{}).forEach(([k,v])=>{const cur=[...(sc[k]||[])];(Array.isArray(v)?v:[]).forEach(x=>{if(typeof x==='string'&&!cur.includes(x))cur.push(x)});sc[k]=cur});
-  const extra={};if(applyCfg&&d.config&&typeof d.config==='object'){const k=d.config;if(typeof k.storeName==='string')extra.storeName=k.storeName.slice(0,40);if(Array.isArray(k.callReasons))extra.callReasons=k.callReasons.filter(x=>typeof x==='string').slice(0,20);if(k.voice&&typeof k.voice==='object')extra.voice=k.voice;if(Number(k.videoPct))extra.videoPct=Math.max(20,Math.min(60,Number(k.videoPct)));
+  const extra={};if(applyCfg&&d.config&&typeof d.config==='object'){const k=d.config;if(typeof k.storeName==='string')extra.storeName=k.storeName.slice(0,40);if(Array.isArray(k.callReasons))extra.callReasons=k.callReasons.filter(x=>typeof x==='string').slice(0,20);if(k.voice&&typeof k.voice==='object')extra.voice=k.voice;if(Number(k.videoPct))extra.videoPct=Math.max(20,Math.min(60,Number(k.videoPct)));if([2,3,4].includes(Number(k.gridCols)))extra.gridCols=Number(k.gridCols);
    if(k.printer&&typeof k.printer==='object'){const pc={...k.printer};const cur=S.config.printer||{};if(!/^COM\d/i.test(String(pc.port||''))&&cur.port)pc.port=cur.port;extra.printer=pc}
    if(typeof k.closedImg==='string'&&k.closedImg.startsWith('data:image/')){try{const b=await (await fetch(k.closedImg)).blob();const r=await S.assets.upload(b,{type:b.type||'image/jpeg'});extra.closedImg=r.id}catch(x){}}
    if(Array.isArray(k.youtube)&&k.youtube.length){const cur=vids();const add=k.youtube.filter(v=>v&&okYt(v.yt)&&!cur.some(x=>x.yt===v.yt)).map(v=>({yt:v.yt,name:String(v.name||'')}));if(add.length)extra.videos=[...cur,...add],extra.videoId=undefined,extra.videoName=undefined,extra.videoSize=undefined}
@@ -1113,7 +1128,7 @@ async function act(a,d,b){const c=S.mctx;
  case 'decedit':{const x=S.decisions.find(y=>y.id===d.id);if(!x)return;S.mctx={type:'dec',id:x.id,d:{title:x.title,detail:x.detail||'',answer:x.answer||'',done:x.status==='done',sort:x.sort}};decModal();break}
  case 'decsave':{const x=c.d;if(!String(x.title||'').trim())return toast('제목을 넣어 주세요','bad');const id=c.id||('d'+NOW().toString(36));if(await w('decisions/'+id,r=>r.set({title:x.title,detail:x.detail||'',answer:x.answer||'',status:x.done?'done':'open',sort:x.sort||NOW(),updatedAt:NOW()})))closeModal();break}
  case 'dectog':{const x=S.decisions.find(y=>y.id===d.id);if(x)await w('decisions/'+x.id,r=>r.update({status:b.checked?'done':'open',updatedAt:NOW()}));break}
- case 'cfgsave':{const reasons=($('#callReasons').value||'').split(',').map(x=>x.trim()).filter(Boolean).slice(0,8);if(await saveConfig({callReasons:reasons,storeName:($('#storeName').value||'').trim(),videoPct:Number($('#vidPct').value)||40}))toast('저장했습니다','ok');break}
+ case 'cfgsave':{const reasons=($('#callReasons').value||'').split(',').map(x=>x.trim()).filter(Boolean).slice(0,8);if(await saveConfig({callReasons:reasons,storeName:($('#storeName').value||'').trim(),videoPct:Number($('#vidPct').value)||40,gridCols:Number(($('#gridCols')||{}).value)||3}))toast('저장했습니다','ok');break}
  case 'vdel':{if(!armed(b))return;const vs=vids();const x=vs.splice(+d.i,1)[0];if(x&&await saveVids(vs)&&S.assets&&x.id){S.assets.delete(x.id).then(loadUsage).catch(()=>{})}break}
  case 'ytadd':{const el=$('#ytUrl');const id=ytId(el.value);if(!id)return toast('유튜브 영상 링크를 확인해 주세요','bad');if(vids().some(x=>x.yt===id))return toast('이미 목록에 있는 영상입니다');let name='';try{const r=await fetch('https://www.youtube.com/oembed?format=json&url='+encodeURIComponent('https://www.youtube.com/watch?v='+id));if(r.ok)name=String((await r.json()).title||'').slice(0,120)}catch(e){}
   if(await saveVids([...vids(),{yt:id,name}])){el.value='';toast('유튜브 영상을 추가했습니다. 모든 주문용 태블릿에 적용됩니다','ok')}break}
