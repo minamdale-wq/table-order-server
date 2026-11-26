@@ -362,6 +362,12 @@ es.addEventListener('change',e=>{let d;try{d=JSON.parse(e.data)}catch(x){return}
 es.addEventListener('peers',e=>{try{peers=JSON.parse(e.data)}catch(x){return}peersL.forEach(f=>{try{f({peers,joined:[],left:[],updated:[]})}catch(x){}})});
 es.onerror=()=>setConn(false);
 setInterval(hb,10000);
+/* 서버가 다시 켜진 뒤에도 연결이 안 돌아오면(오래된 WebView 등) 서버가 살아 있는지 확인하고 화면을 새로 불러옴 */
+let lostAt=0;connL.add(v=>{lostAt=v?0:Date.now()});
+setInterval(async()=>{if(connected){lostAt=0;return}if(!lostAt){lostAt=Date.now();return}if(Date.now()-lostAt<25000||window.TOD_RELOADING)return;
+ try{const r=await fetch('/api/probe?t=wd'+Date.now(),{cache:'no-store'});if(!r.ok)return}catch(x){return}
+ let ok=true;try{ok=!window.TOD_CAN_RELOAD||window.TOD_CAN_RELOAD()}catch(x){}
+ if(ok){window.TOD_RELOADING=1;location.reload()}},5000);
 const snap=(id,x)=>({id,exists:!!x,data:()=>x?x.data:undefined,metadata:{fromCache:false,hasPendingWrites:false},_v:x?x.version:0});
 const write=ops=>api('/api/write',{ops}).then(()=>{});
 const rid=()=>'x'+Date.now().toString(36)+Math.random().toString(36).slice(2,8);
