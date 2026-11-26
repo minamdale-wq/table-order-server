@@ -254,7 +254,9 @@ button.opsw .seg{display:flex;align-items:center;padding:0 16px;border-radius:99
 button.opsw.is-open{border-color:#1f4632}button.opsw.is-open .so{background:linear-gradient(180deg,#2d8a57,#1f6b42);color:#fff;box-shadow:0 2px 8px #1f6b4255}
 button.opsw.is-closed{border-color:#c0392b}button.opsw.is-closed .sc{background:#c0392b;color:#fff;animation:sndpulse 1.4s ease-in-out infinite}
 button.opsw.armed{background:#c0392b;border-color:#c0392b;color:#fff;font-weight:800;padding:0 18px;font-size:15px}
-@media (min-width:760px){.board.board2{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.col.col-done{background:#e3efe6!important;border-color:#b9d6c1!important}.col.col-done h3{color:#1f6b42}
+.ticket.st-done{opacity:1!important;border-top-color:#2d8a57!important;background:linear-gradient(180deg,#eef7f0,#f8fcf9 50%)!important;color:#4d5a50}
+.ticket.st-done header b::after{content:' ✓ 완료';font-size:12px;font-weight:800;color:#fff;background:#2d8a57;border-radius:999px;padding:2px 8px;margin-left:6px;vertical-align:middle}
 /* ---------- 모달 ---------- */
 .modal{position:fixed;inset:0;background:#000000b8;display:grid;place-items:center;padding:16px;z-index:20}
 .modal[hidden]{display:none}
@@ -838,20 +840,20 @@ function counterTab(){
 }
 function orderNo(o){if(o.test)return 'T';const same=S.orders.filter(x=>x.dateKey===o.dateKey&&!x.test);return String(same.findIndex(x=>x.id===o.id)+1)}
 function ticket(o){const btn=(a,l,c)=>`<button class="btn sm ${c||''}" data-act="${a}" data-id="${esc(o.id)}">${l}</button>`;
- const acts={new:btn('oacc','수락')+(window.TOD_API&&pcfg().on?btn('oprint','출력','ghost'):'')+btn('oedit','수정','ghost')+btn('ocan','취소','ghost'),accepted:btn('odone','전달 완료')+(window.TOD_API&&pcfg().on?btn('oprint','출력','ghost'):'')+btn('oedit','수정','ghost')+btn('ocan','취소','ghost'),done:btn('oback','접수로 되돌리기','ghost'),canceled:''}[o.status]||'';
+ const acts={new:btn('oacc','수락')+(window.TOD_API&&pcfg().on?btn('oprint','출력','ghost'):'')+btn('oedit','수정','ghost')+btn('ocan','취소','ghost'),accepted:btn('odone','전달 완료')+(window.TOD_API&&pcfg().on?btn('oprint','출력','ghost'):'')+btn('oedit','수정','ghost')+btn('ocan','취소','ghost'),done:btn('oback','수락으로 되돌리기','ghost'),canceled:''}[o.status]||'';
  return `<article class="ticket st-${esc(o.status)}"><header><b>#${orderNo(o)}</b><span>${esc(o.place||o.tabletName||o.tabletId)}</span>${o.test?'<span class="tag test">테스트</span>':''}<time>${o.dateKey!==S.today?'어제 ':''}${hm(o.createdAt)}</time></header>
  <ul>${(o.items||[]).map(i=>`<li><span>${esc(i.name)}${(i.opts||[]).length?` <small>(${esc(i.opts.map(x=>x.n).join(', '))})</small>`:''}</span><b>×${i.qty}</b></li>`).join('')}</ul>
  ${o.memo?`<div class="memo">${esc(o.memo)}</div>`:''}${o.status==='canceled'&&o.cancelReason?`<div class="memo">취소 사유: ${esc(o.cancelReason)}</div>`:''}
  <footer><span class="tag ${o.pay==='paid'?'paid':'unpaid'}">${o.pay==='paid'?'결제 완료'+(o.payMethod?' · '+esc(o.payMethod):''):'미결제'}</span><b>${won(o.total)}</b></footer><div class="acts">${acts}</div></article>`}
 function vOrders(){
  const os=S.orders.filter(o=>S.showTest||!o.test);const by=s=>os.filter(o=>o.status===s);
- const done=by('done').slice(-20).reverse(),can=by('canceled').reverse();
+ const done=by('done').filter(o=>o.dateKey===S.today).reverse(),can=by('canceled').filter(o=>o.dateKey===S.today).reverse();
  return `<div class="bar"><h2>주문 현황</h2><label class="ck"><input type="checkbox" data-act="showtest"${S.showTest?' checked':''}> 테스트 주문 보기</label></div>
- <div class="board board2"><section class="col"><h3>신규 <span>${by('new').length}</span></h3>${by('new').map(ticket).join('')||'<div class="empty">새 주문 없음</div>'}</section>
- <section class="col"><h3>수락 · 준비 중 <span>${by('accepted').length}</span></h3>${by('accepted').map(ticket).join('')||'<div class="empty">없음</div>'}</section></div>
- ${done.length?`<details style="margin-top:16px"><summary>전달 완료 ${by('done').length}건 (최근 20건 보기 · 되돌리기)</summary><div class="cards">${done.map(ticket).join('')}</div></details>`:''}
+ <div class="board"><section class="col"><h3>신규 <span>${by('new').length}</span></h3>${by('new').map(ticket).join('')||'<div class="empty">새 주문 없음</div>'}</section>
+ <section class="col"><h3>수락 · 준비 중 <span>${by('accepted').length}</span></h3>${by('accepted').map(ticket).join('')||'<div class="empty">없음</div>'}</section>
+ <section class="col col-done"><h3>✓ 오늘 전달 완료 <span>${done.length}</span></h3>${done.map(ticket).join('')||'<div class="empty">없음</div>'}</section></div>
  ${can.length?`<details style="margin-top:16px"><summary>취소된 주문 ${can.length}건</summary><div class="cards">${can.map(ticket).join('')}</div></details>`:''}
- <p class="fine">'전달 완료'를 누른 주문은 이 화면에서 사라지고 아래 '전달 완료'와 후불 정산·내역에 남습니다. 어제·오늘 주문이 표시됩니다.</p>`}
+ <p class="fine">전달 완료는 오늘 것만 보입니다. 지난 날짜 주문은 내역·매출에서 볼 수 있습니다.</p>`}
 function unpaidOf(tid){return S.orders.filter(o=>o.tabletId===tid&&!o.test&&o.status!=='canceled'&&o.pay!=='paid')}
 function vSettle(){
  const cs=S.tablets.filter(t=>t.role!=='counter');
