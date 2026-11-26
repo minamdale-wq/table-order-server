@@ -546,7 +546,7 @@ const timeout=(p,ms)=>Promise.race([p,new Promise((_,r)=>setTimeout(()=>r({code:
 const busy=new Set();
 async function w(path,fn){if(busy.has(path)){toast('처리 중입니다…');return false}busy.add(path);
  try{await timeout(fn(S.db.doc(path)),12000);return true}catch(e){toast(e&&e.code==='not_permitted'?'관리 PIN이 필요합니다. 주문받는 태블릿에서 해 주세요':e&&e.code==='unavailable'?'서버에 연결할 수 없습니다':'저장 실패: '+((e&&(e.code||e.message))||'알 수 없음'),'bad');return false}finally{busy.delete(path)}}
-function armed(b){if(b.dataset.armed)return true;b.dataset.armed='1';const t=b.innerHTML,c=b.className;b.textContent=b.id==='openBtn'?'한 번 더 누르면 영업 종료':'한 번 더 눌러 확인';if(b.id==='openBtn')b.className='opsw armed';setTimeout(()=>{if(b.isConnected){delete b.dataset.armed;b.innerHTML=t;b.className=c}},3000);return false}
+function armed(b){if(b.dataset.armed)return true;b.dataset.armed='1';const t=b.innerHTML,c=b.className;b.textContent=b.id==='openBtn'?'한 번 더 누르면 영업 종료':'한 번 더 눌러 확인';if(b.id==='openBtn')b.className='opsw armed';setTimeout(()=>{if(!b.isConnected||!b.dataset.armed)return;delete b.dataset.armed;if(b.id==='openBtn'){openUI();return}b.innerHTML=t;b.className=c},3000);return false}
 async function cap(n){for(let i=0;i<60&&!(window.claude&&window.claude.use);i++)await new Promise(r=>setTimeout(r,100));
  if(!(window.claude&&window.claude.use))return null;try{return await window.claude.use(n)}catch(e){return null}}
 const saveConfig=p=>{const n={...S.config,...p};Object.keys(n).forEach(k=>{if(n[k]===undefined)delete n[k]});return w('config/main',r=>r.set(n))};
