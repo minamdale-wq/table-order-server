@@ -436,7 +436,11 @@ function lanAddresses() {
 async function handle(req, res) {
   const u = new URL(req.url, 'http://local'), p = u.pathname, m = req.method;
   const ip = (req.socket.remoteAddress || '').replace(/^::ffff:/, '');
-  if ((m === 'GET' || m === 'HEAD') && (p === '/' || p === '/index.html')) return serveFile(req, res, path.join(PUB, 'index.html'), 'text/html; charset=utf-8', true);
+  if ((m === 'GET' || m === 'HEAD') && (p === '/' || p === '/index.html')) {
+    if (!pageBuf) refreshPageHash(); if (!pageBuf) return json(res, 404, { code: 'not_found' });
+    res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8', 'Content-Length': pageBuf.length, 'Cache-Control': 'no-cache' });
+    return m === 'HEAD' ? res.end() : res.end(pageBuf);
+  }
   if (m === 'GET' && p === '/api/tts') {
     const t = String(u.searchParams.get('t') || '').slice(0, 120);
     if (!ttsAllowed(t)) throw new E(403, 'not_permitted', '허용되지 않은 문구');
@@ -459,7 +463,7 @@ async function handle(req, res) {
     return json(res, 200, { ok: true });
   }
   if ((m === 'GET' || m === 'HEAD') && (p === '/app' || p === '/app.apk')) { res.writeHead(302, { Location: 'https://github.com/minamdale-wq/table-order-server/releases/latest/download/table-order-app.apk', 'Cache-Control': 'no-store' }); return res.end(); }
-  if ((m === 'GET' || m === 'HEAD') && p === '/closed.jpg') { if (!fs.existsSync(path.join(PUB, 'closed.jpg'))) return json(res, 404, { error: { code: 'not_found' } }); return serveFile(req, res, path.join(PUB, 'closed.jpg'), 'image/jpeg', true); }
+  if ((m === 'GET' || m === 'HEAD') && p === '/closed.jpg') { if (!fs.existsSync(path.join(PUB, 'closed.jpg'))) return json(res, 404, { error: { code: 'not_found' } }); return sendMem(req, res, path.join(PUB, 'closed.jpg'), 'image/jpeg'); }
   if (m === 'GET' && p === '/api/probe') return json(res, 200, { probe: String(u.searchParams.get('t') || '').slice(0, 40) });
   if (m === 'GET' && p === '/api/events') return sse(req, res, u);
   if ((m === 'GET' || m === 'HEAD') && p.startsWith('/_blob/')) {
@@ -566,7 +570,17 @@ async function handle(req, res) {
 let updating = false;
 const sha = b => crypto.createHash('sha1').update(b).digest('hex').slice(0, 12);
 let pageHash = '';
-function refreshPageHash() { try { pageHash = sha(fs.readFileSync(path.join(PUB, 'index.html'))); } catch (e) { pageHash = ''; } }
+// 화면 파일은 메모리에 올려서 보냄 → 느린 태블릿이 파일을 붙잡고 있어 업데이트가 막히는 일을 없앰
+let pageBuf = null;
+function refreshPageHash() { try { pageBuf = fs.readFileSync(path.join(PUB, 'index.html')); pageHash = sha(pageBuf); } catch (e) { pageBuf = null; pageHash = ''; } }
+const memFiles = new Map();
+function sendMem(req, res, file, type) {
+  let st; try { st = fs.statSync(file); } catch (e) { return json(res, 404, { code: 'not_found' }); }
+  let c = memFiles.get(file);
+  if (!c || c.mtime !== st.mtimeMs || c.size !== st.size) { try { c = { buf: fs.readFileSync(file), mtime: st.mtimeMs, size: st.size }; memFiles.set(file, c); } catch (e) { return json(res, 404, { code: 'not_found' }); } }
+  res.writeHead(200, { 'Content-Type': type, 'Content-Length': c.buf.length, 'Cache-Control': 'no-cache' });
+  return req.method === 'HEAD' ? res.end() : res.end(c.buf);
+}
 refreshPageHash();
 function curVersion() { try { return JSON.parse(fs.readFileSync(path.join(ROOT, 'version.json'), 'utf8')).version || VERSION; } catch (e) { return VERSION; } }
 function cmpVer(a, b) { const x = String(a).split('.').map(Number), y = String(b).split('.').map(Number); for (let i = 0; i < 3; i++) { const d = (x[i] || 0) - (y[i] || 0); if (d) return d; } return 0; }
@@ -672,6 +686,7 @@ seed();
 checkDowntime();
 dailyBackup(); setInterval(dailyBackup, 10 * 60 * 1000);
 const server = http.createServer((req, res) => {
+  if (!String(req.url).startsWith('/api/events')) res.setTimeout(120000, () => { try { res.destroy(); } catch (e) { } });
   handle(req, res).catch(e => {
     if (e instanceof E) return json(res, e.status, { code: e.code, message: e.message });
     log('오류:', e && e.stack || e); json(res, 500, { code: 'upstream_error', message: '서버 오류' });
