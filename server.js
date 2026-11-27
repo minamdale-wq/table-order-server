@@ -586,6 +586,16 @@ function listBackups() {
   return fs.readdirSync(VERS).filter(n => /^[\d.]+-\d{8}-\d{6}$/.test(n)).sort((a, b) => b.split('-').slice(1).join('').localeCompare(a.split('-').slice(1).join('')))
     .map(n => ({ name: n, version: n.split('-')[0] }));
 }
+const sleepMs = ms => { try { Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, ms); } catch (e) { } };
+// 윈도우에서 백신 검사 등으로 파일이 잠깐 잠겨 있으면 이름 바꾸기가 실패하므로 여러 번 다시 시도
+function replaceFile(dst, buf) {
+  const tmp = dst + '.new'; fs.mkdirSync(path.dirname(dst), { recursive: true }); fs.writeFileSync(tmp, buf);
+  let last;
+  for (let i = 0; i < 20; i++) { try { fs.renameSync(tmp, dst); return; } catch (e) { last = e; sleepMs(250); } }
+  try { fs.copyFileSync(tmp, dst); try { fs.unlinkSync(tmp); } catch (e) { } return; } catch (e) { last = e; }
+  try { fs.unlinkSync(tmp); } catch (e) { }
+  throw last;
+}
 function installFiles(files, label) {
   // 1) 검사
   const stage = path.join(VERS, '_staging'); fs.rmSync(stage, { recursive: true, force: true }); fs.mkdirSync(stage, { recursive: true });
@@ -606,8 +616,8 @@ function installFiles(files, label) {
   for (const [f, buf] of files) {
     const dst = path.join(ROOT, f);
     if (f === 'server.js') { try { restart = !fs.readFileSync(dst).equals(buf); } catch (e) { restart = true; } }
-    fs.mkdirSync(path.dirname(dst), { recursive: true });
-    fs.writeFileSync(dst + '.new', buf); fs.renameSync(dst + '.new', dst);
+    try { replaceFile(dst, buf); }
+    catch (e) { if (['server.js', 'public/index.html', 'version.json'].includes(f)) throw e; log('업데이트 중 ' + f + ' 파일을 바꾸지 못해 건너뜁니다:', e.code || e.message); }
     if (f.endsWith('.command')) { try { fs.chmodSync(dst, 0o755); } catch (e) { } }
   }
   const before = pageHash; refreshPageHash();
@@ -743,6 +753,13 @@ function tryListen(i) {
 }
 tryListen(0);
 /* 준비 중 화면 기본 그림이 없으면 받아 둠 (예전 버전에서 업데이트한 경우) */
-(async () => { const f = path.join(PUB, 'closed.jpg'); if (fs.existsSync(f)) return; try { const b = await fetchBuf(UPDATE_SRC + 'public/closed.jpg?t=' + Date.now()); if (b && b.length > 1000 && b[0] === 0xFF && b[1] === 0xD8) { fs.writeFileSync(f + '.new', b); fs.renameSync(f + '.new', f); log('준비 중 화면 기본 그림을 받았습니다.'); } } catch (e) { } })();
+// 준비 중 화면 기본 그림: 이 버전에 맞는 그림이 아니면 GitHub에서 받아 바꿈
+const CLOSED_SHA1 = '6db00d0272d9006aec90c855e628f7e491c88de1';
+(async () => { const f = path.join(PUB, 'closed.jpg');
+  try { if (fs.existsSync(f) && crypto.createHash('sha1').update(fs.readFileSync(f)).digest('hex') === CLOSED_SHA1) return; } catch (e) { }
+  for (let i = 0; i < 3; i++) { try { const b = await fetchBuf(UPDATE_SRC + 'public/closed.jpg?t=' + Date.now());
+    if (b && b.length > 1000 && b[0] === 0xFF && b[1] === 0xD8 && crypto.createHash('sha1').update(b).digest('hex') === CLOSED_SHA1) { replaceFile(f, b); log('준비 중 화면 그림을 새 그림으로 바꿨습니다.'); return; }
+  } catch (e) { log('준비 중 그림 받기 실패:', e.code || e.message); } await new Promise(r => setTimeout(r, 20000)); }
+})();
 function shutdown() { log('서버를 끕니다…'); try { compact(); } catch (e) { } process.exit(0); }
 process.on('SIGINT', shutdown); process.on('SIGTERM', shutdown);
