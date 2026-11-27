@@ -83,7 +83,7 @@ input[type=range]{padding:0;border:0;accent-color:var(--turf)}
 .vid video{width:100%;height:100%;object-fit:contain;display:block}
 #ytwrap{position:absolute;inset:0}#ytwrap[hidden],.vid video[hidden]{display:none}#ytwrap iframe{width:100%;height:100%;border:0;pointer-events:none}.vid .vempty{z-index:1}
 .vid .vempty{position:absolute;inset:0;display:grid;place-items:center;color:#9aa;font-size:.9em}.vid .vempty[hidden]{display:none}
-.closedov{position:fixed;top:0;left:0;right:0;bottom:var(--vidh,40vh);z-index:15;background:#0d1a14;display:grid;place-items:center;overflow:hidden}.closedov[hidden]{display:none}.closedov .cbg{position:absolute;inset:-40px;background-size:cover;background-position:center;filter:blur(28px) brightness(.55)}.closedov img{position:relative;max-width:100%;max-height:100%;object-fit:contain}.closedov .ctxt{position:relative;color:#fff;font-size:clamp(32px,7vw,96px);font-weight:800;text-align:center;line-height:1.3}.closedov .ctap{position:absolute;left:0;top:0;width:120px;height:120px;background:transparent;border:0;z-index:2}.khead .btn.open-on{background:#fff!important;border-color:#fff!important;color:#c0392b!important}.khead .btn.open-off{background:#f5b301!important;border-color:#f5b301!important;color:#1b1b1b!important}.khead .pill.closed{background:#c0392b!important;color:#fff!important;font-weight:800}
+.closedov{position:fixed;top:0;left:0;right:0;bottom:var(--vidh,40vh);z-index:15;background:#0d1a14;display:grid;place-items:center;overflow:hidden}.closedov[hidden]{display:none}.closedov .cbg{position:absolute;inset:-40px;background-size:cover;background-position:center;filter:blur(28px) brightness(.55)}.closedov img{position:relative;max-width:100%;max-height:100%;object-fit:contain;transition:opacity .65s ease}.closedov .cbg{transition:opacity .65s ease}.closedov .ctxt{position:relative;color:#fff;font-size:clamp(32px,7vw,96px);font-weight:800;text-align:center;line-height:1.3}.closedov .ctap{position:absolute;left:0;top:0;width:120px;height:120px;background:transparent;border:0;z-index:2}.khead .btn.open-on{background:#fff!important;border-color:#fff!important;color:#c0392b!important}.khead .btn.open-off{background:#f5b301!important;border-color:#f5b301!important;color:#1b1b1b!important}.khead .pill.closed{background:#c0392b!important;color:#fff!important;font-weight:800}
 @media (max-aspect-ratio:4/5){.cbody{grid-template-columns:minmax(0,1fr) clamp(280px,36vw,460px);grid-template-rows:auto minmax(0,1fr)}.cats{grid-column:1/-1;flex-direction:row;overflow-x:auto}.cats button{flex:none}}
 
 /* ===== 고객 화면 디자인 (크림 + 숲색 + 금색, 떠 있는 주문 패널) ===== */
@@ -257,6 +257,14 @@ button.opsw.armed{background:#c0392b;border-color:#c0392b;color:#fff;font-weight
 .col.col-done{background:#e3efe6!important;border-color:#b9d6c1!important}.col.col-done h3{color:#1f6b42}
 .ticket.st-done{opacity:1!important;border-top-color:#2d8a57!important;background:linear-gradient(180deg,#eef7f0,#f8fcf9 50%)!important;color:#4d5a50}
 .ticket.st-done header b::after{content:' ✓ 완료';font-size:12px;font-weight:800;color:#fff;background:#2d8a57;border-radius:999px;padding:2px 8px;margin-left:6px;vertical-align:middle}
+.panel.slpanel{grid-column:1/-1}.slpanel .vgrid{grid-template-columns:repeat(auto-fit,minmax(220px,1fr))}.slmeta .vchk{white-space:nowrap}.slpanel .sldate{display:flex;flex-wrap:wrap;align-items:center;gap:6px}.slpanel .sldate input{width:11em!important;min-width:0;flex:none;min-height:36px}
+.slnow{display:flex;gap:12px;align-items:center;flex-wrap:wrap}.slnow img{width:220px;max-width:100%;aspect-ratio:4/3;object-fit:contain;background:#0d1a14;border-radius:10px}
+.sllist{display:grid;gap:8px;max-height:560px;overflow:auto}
+.slrow{display:grid;grid-template-columns:120px minmax(0,1fr) auto;gap:10px;align-items:center;padding:8px;border:1px solid var(--line);border-radius:12px;background:#fffdf9}
+.slrow.off{opacity:.55}.slrow img{width:120px;aspect-ratio:4/3;object-fit:cover;border-radius:8px;background:#0d1a14}
+.slmeta{display:grid;gap:6px;font-size:14px}.slmeta .vchk{display:inline-flex;margin:0 0 0 6px}.slst{font-size:12px;font-weight:800;color:#1f6b42}.slrow.off .slst{color:#9a8f80}
+.sldate input{font:inherit;font-size:13px;padding:4px 6px;border:1px solid var(--line);border-radius:8px}.slbtn{display:flex;gap:4px;flex-wrap:wrap;justify-content:flex-end}
+@media(max-width:640px){.slrow{grid-template-columns:90px minmax(0,1fr)}.slrow img{width:90px}.slbtn{grid-column:1/-1}}
 /* ---------- 모달 ---------- */
 .modal{position:fixed;inset:0;background:#000000b8;display:grid;place-items:center;padding:16px;z-index:20}
 .modal[hidden]{display:none}
@@ -510,8 +518,29 @@ document.addEventListener('input',e=>{if(e.target&&e.target.id==='volr'){S.vol.v
 
 const isOpen=()=>S.config.open!==false;
 const closedSrc=()=>blob(S.config.closedImg)||(window.TOD_API?'/closed.jpg':'');
-function closedUI(){const ov=$('#closedov');if(!ov)return;const shut=!isOpen();ov.hidden=!shut;if(!shut)return;const src=closedSrc(),im=$('#closedimg'),tx=$('#closedtxt'),bg=$('#closedbg');
- if(src){if(im.getAttribute('src')!==src){im.onerror=()=>{im.hidden=true;tx.hidden=false;bg.style.backgroundImage=''};im.onload=()=>{im.hidden=false;tx.hidden=true};im.setAttribute('src',src)}bg.style.backgroundImage='url("'+src+'")'}else{im.hidden=true;tx.hidden=false;bg.style.backgroundImage=''}}
+/* 준비 중 사진 순환: 서버 시계 기준으로 계산해 6대가 같은 순간 같은 사진을 보여 줌 */
+const SL_MAX=100;
+const slides=()=>Array.isArray(S.config.closedSlides)?S.config.closedSlides.filter(x=>x&&x.id):[];
+const slInt=()=>Math.max(1,Math.min(10,Math.round(Number(S.config.closedInterval)||1)));
+const slLive=(x,t)=>x.on!==false&&(!x.from||x.from<=t)&&(!x.to||x.to>=t);
+function slidesActive(){const t=dkey();return slides().filter(x=>slLive(x,t)).map(x=>blob(x.id)).filter(Boolean)}
+function seedPerm(n,seed){const a=[];for(let i=0;i<n;i++)a.push(i);let x=((seed+1)*2654435761)>>>0||1;const r=()=>{x^=x<<13;x>>>=0;x^=x>>>17;x^=x<<5;x>>>=0;return x/4294967296};for(let i=n-1;i>0;i--){const j=Math.floor(r()*(i+1));const t=a[i];a[i]=a[j];a[j]=t}return a}
+function permFor(n,c){const p=seedPerm(n,c);if(n>2){const q=seedPerm(n,c-1);if(p[0]===q[n-1]){const t=p[0];p[0]=p[1];p[1]=t}}return p}
+function slideAt(list,slot){const n=list.length;if(!n)return '';if(n===1)return list[0];if(S.config.closedOrder==='seq'||n===2)return list[((slot%n)+n)%n];return list[permFor(n,Math.floor(slot/n))[slot%n]]}
+const slSlot=()=>Math.floor(NOW()/(slInt()*60000));
+function closedCur(){const l=slidesActive();return l.length?slideAt(l,slSlot()):closedSrc()}
+function closedUI(){const ov=$('#closedov');if(!ov)return;const shut=!isOpen();ov.hidden=!shut;if(!shut)return;const src=closedCur(),im=$('#closedimg'),tx=$('#closedtxt'),bg=$('#closedbg');
+ if(!src){im.hidden=true;tx.hidden=false;bg.style.backgroundImage='';im.dataset.want='';return}
+ if(im.dataset.want!==src){im.dataset.want=src;
+  const show=()=>{if(im.dataset.want!==src)return;im.onerror=()=>{if(im.dataset.want!==src)return;im.hidden=true;tx.hidden=false;bg.style.backgroundImage=''};
+   im.onload=()=>{if(im.dataset.want!==src)return;im.hidden=false;tx.hidden=true;bg.style.backgroundImage='url("'+src+'")';setTimeout(()=>{im.style.opacity='1';bg.style.opacity='1'},30)};im.setAttribute('src',src)};
+  if(!im.hidden&&im.getAttribute('src')){im.style.opacity='0';bg.style.opacity='0';setTimeout(show,700)}else show()}
+ const l=slidesActive();if(l.length>1){try{const nx=new Image();nx.src=slideAt(l,slSlot()+1)}catch(e){}}}
+setInterval(()=>{try{closedUI()}catch(e){}},5000);
+async function shrinkImg(f,max){max=max||1600;try{const url=URL.createObjectURL(f);const img=await new Promise((ok,no)=>{const i=new Image();i.onload=()=>ok(i);i.onerror=no;i.src=url});
+ const sc=Math.min(1,max/Math.max(img.naturalWidth,img.naturalHeight));if(sc>=1&&f.size<800000){URL.revokeObjectURL(url);return f}
+ const c=document.createElement('canvas');c.width=Math.round(img.naturalWidth*sc);c.height=Math.round(img.naturalHeight*sc);c.getContext('2d').drawImage(img,0,0,c.width,c.height);URL.revokeObjectURL(url);
+ return await new Promise(ok=>c.toBlob(b=>ok(b||f),'image/jpeg',.86))}catch(e){return f}}
 async function beepOn(){try{S.ac=S.ac||new (window.AudioContext||window.webkitAudioContext)();await S.ac.resume();if(S.ac.state!=='running')return false;S.beep=true;primeVoice();beepUI();return true}catch(e){return false}}
 function beepAuto(){if(S.beepInit)return;S.beepInit=1;beepOn();const f=e=>{if(S.beep||S.beepUserOff)return;if(e&&e.target&&e.target.closest&&e.target.closest('#beepBtn'))return;beepOn()};document.addEventListener('pointerdown',f,true);document.addEventListener('keydown',f,true)}
 function beepUI(){const b=$('#beepBtn');if(!b)return;const st=S.beep?'on':(S.beepUserOff?'off':'wait');b.className='btn sm snd-'+st;b.innerHTML=st==='on'?'🔔 알림음 켜짐':st==='off'?'🔕 알림음 꺼짐 · 눌러서 켜기':'👆 화면을 한 번 누르면 알림음이 켜집니다'}
@@ -566,10 +595,11 @@ async function menuExport(){if(!S.menu.length)return toast('내보낼 메뉴가 
   const it={name:m.name,cat:m.cat,sub:m.sub||'',price:m.price,desc:m.desc||'',sort:m.sort||0,hidden:!!m.hidden,soldOut:!!m.soldOut,groups:m.groups||[]};
   if(m.img&&blob(m.img)){try{const r=await fetch(blob(m.img));if(r.ok)it.image=await toDataURL(await r.blob());else miss++}catch(x){miss++}}items.push(it)}
  const c=S.config||{};let closedImg;if(c.closedImg&&blob(c.closedImg)){try{const r=await fetch(blob(c.closedImg));if(r.ok)closedImg=await toDataURL(await r.blob())}catch(x){}}
+ const slOut=[];for(const x of slides()){try{const u=blob(x.id);const r=u&&await fetch(u);if(r&&r.ok)slOut.push({img:await toDataURL(await r.blob()),on:x.on!==false,from:x.from||'',to:x.to||'',name:x.name||''})}catch(e){}}
  const vAll=vids(),yt=vAll.filter(v=>okYt(v.yt)).map(v=>({yt:v.yt,name:v.name||''})),vFiles=vAll.length-yt.length;
  const tabs=(S.tablets||[]).map(t=>({id:t.id,no:t.no,name:t.name,role:t.role,place:t.place||'',model:t.model||'',note:t.note||'',voiceName:t.voiceName||'',testMode:!!t.testMode}));
  const d={format:'table-order-menu',version:2,note:(c.storeName||'테이블 오더')+' 메뉴·설정 '+new Date().toLocaleString('ko-KR'),categories:c.categories||[],subcats:c.subcats||{},
-  config:{storeName:c.storeName||'',callReasons:c.callReasons||[],voice:c.voice||undefined,videoPct:c.videoPct||undefined,gridCols:c.gridCols||undefined,startVol:c.startVol!=null?c.startVol:undefined,printer:c.printer||undefined,closedImg,youtube:yt,videoFiles:vFiles},tablets:tabs,items};
+  config:{storeName:c.storeName||'',callReasons:c.callReasons||[],voice:c.voice||undefined,videoPct:c.videoPct||undefined,gridCols:c.gridCols||undefined,startVol:c.startVol!=null?c.startVol:undefined,closedSlides:slOut.length?slOut:undefined,closedInterval:c.closedInterval||undefined,closedOrder:c.closedOrder||undefined,printer:c.printer||undefined,closedImg,youtube:yt,videoFiles:vFiles},tablets:tabs,items};
  const day=new Date();const fn='메뉴-설정-'+day.getFullYear()+String(day.getMonth()+1).padStart(2,'0')+String(day.getDate()).padStart(2,'0')+'.json';
  try{dlFile(fn,JSON.stringify(d));S.mctx=null;closeModal();toast(items.length+'개 메뉴와 설정을 내보냈습니다'+(miss?' (사진 '+miss+'개 못 가져옴)':'')+(vFiles?' · 동영상 파일 '+vFiles+'개는 파일에 들어가지 않으니 따로 올려 주세요':'')+'. 다른 서버의 메뉴 관리 → 가져오기로 넣으세요','ok')}
  catch(x){S.mctx=null;closeModal();toast('파일을 내려받지 못했습니다','bad')}}
@@ -974,7 +1004,15 @@ function vSettings(){const c=S.config;const t=me()||{};
  ${S.assetUsage?`<span class="fine">올린 파일 ${S.assetUsage.files}개 · ${MB(S.assetUsage.bytes)}${S.assetUsage.freeBytes!=null?' · 서버 디스크 남은 공간 '+(S.assetUsage.freeBytes/1073741824).toFixed(1)+'GB':''}</span>`:''}
  <span class="fine">mp4 또는 webm, 파일 하나당 최대 2GB. 여러 개를 올리면 순서대로 이어 재생하고, 여러 파일을 한 번에 골라도 됩니다. 주문용 태블릿은 켤 때마다 소리 없이 시작합니다. 동영상 오른쪽 아래 스피커 버튼으로 소리를 켜고 크기를 조절할 수 있습니다 (크기는 태블릿마다 기억).</span>
  <label class="form"><span>동영상 영역 높이: 화면의 <b id="vpv">${Number(c.videoPct)||40}</b>% (주문 6 : 동영상 4 = 40%)</span><input type="range" id="vidPct" min="15" max="60" value="${Number(c.videoPct)||40}"></label><label class="form"><span>주문 화면 메뉴 칸 (세로 화면 한 줄에)</span><select id="gridCols">${[[2,'2개 · 크게 (한 화면에 약 4~6개)'],[3,'3개 · 보통 (한 화면에 약 9개)'],[4,'4개 · 작게 (한 화면에 약 12~16개)']].map(([x,l])=>`<option value="${x}"${(Number(c.gridCols)||3)===x?' selected':''}>${l}</option>`).join('')}</select></label><label class="form"><span>주문 태블릿 동영상 시작 소리 크기 (켤 때마다 이 크기로 시작)</span><select id="startVol">${[0,5,10,15,20,30,40,50,70,100].map(x=>`<option value="${x}"${startVol()===x?' selected':''}>${x===0?'0 (소리 끔)':x}</option>`).join('')}</select></label></div>
- <div class="panel"><h3>영업 준비 중 화면</h3><span class="fine">위쪽 '영업 종료'를 누르면 주문용 태블릿 6대에 이 그림이 전체 화면으로 나오고 주문이 막힙니다. '영업 시작'을 누르면 다시 주문 화면으로 돌아갑니다.</span>${closedSrc()?`<img src="${esc(closedSrc())}" alt="준비 중 화면" style="width:100%;max-height:220px;object-fit:contain;border-radius:12px;background:#0d1a14">`:'<span class="fine">그림이 없으면 "영업 준비 중" 글씨만 나옵니다.</span>'}<div class="catrow">${S.assets?'<label class="btn ghost">그림 바꾸기<input type="file" accept="image/*" data-up="closedimg" hidden></label>':''}${S.config.closedImg&&window.TOD_API?'<button class="btn ghost" data-act="closedimgreset">기본 그림으로</button>':''}</div></div>
+ ${(()=>{const sl=slides(),t=dkey(),live=sl.filter(x=>slLive(x,t)).length,cur=closedCur();return `<div class="panel slpanel"><h3>영업 준비 중 화면</h3><span class="fine">'영업 종료'를 누르면 주문용 태블릿 6대의 주문 칸에 준비 중 사진이 나오고 주문이 막힙니다. 사진을 여러 장 올리면 정해진 간격마다 6대가 같은 순간에 함께 바뀝니다.</span>
+ <div class="vgrid"><label>바뀌는 간격<select id="slInt">${[1,2,3,4,5,6,7,8,9,10].map(x=>`<option value="${x}"${slInt()===x?' selected':''}>${x}분마다</option>`).join('')}</select></label>
+ <label>순서<select id="slOrd"><option value="random"${S.config.closedOrder!=='seq'?' selected':''}>무작위</option><option value="seq"${S.config.closedOrder==='seq'?' selected':''}>차례대로 (아래 목록 순서)</option></select></label></div>
+ <div class="slnow">${cur?`<img src="${esc(cur)}" alt="지금 나오는 사진">`:''}<span class="fine">${live?`지금 사용 중 ${live}장${live>1?' · 이 사진이 지금 태블릿에 나옵니다':''}`:(sl.length?'오늘 날짜에 맞는 사진이 없어 기본 그림이 나옵니다':'사진이 없어 기본 그림이 나옵니다')}</span></div>
+ <div class="sllist">${sl.map((x,i)=>{const lv=slLive(x,t);return `<div class="slrow${lv?'':' off'}"><img src="${esc(blob(x.id)||'')}" alt="" loading="lazy"><div class="slmeta"><div><b>${i+1}</b> <label class="vchk"><input type="checkbox" data-sl="on" data-i="${i}"${x.on!==false?' checked':''}> 사용</label> <span class="slst">${x.on===false?'꺼짐':lv?'나오는 중':'기간 아님'}</span></div>
+  <div class="sldate">기간 <input type="date" data-sl="from" data-i="${i}" value="${esc(x.from||'')}"> ~ <input type="date" data-sl="to" data-i="${i}" value="${esc(x.to||'')}"> <span class="fine">(비우면 항상)</span></div></div>
+  <div class="slbtn"><button class="btn sm ghost" data-act="slup" data-i="${i}"${i?'':' disabled'}>▲</button><button class="btn sm ghost" data-act="sldn" data-i="${i}"${i<sl.length-1?'':' disabled'}>▼</button><button class="btn sm ghost" data-act="sldel" data-i="${i}">삭제</button></div></div>`}).join('')}</div>
+ <div class="catrow">${S.assets?`<label class="btn${sl.length>=SL_MAX?' ghost':''}">사진 추가 (여러 장 한 번에)<input type="file" accept="image/*" multiple data-up="slides" hidden${sl.length>=SL_MAX?' disabled':''}></label>`:''}<span class="fine">${sl.length} / ${SL_MAX}장 · 가로세로 4:3 사진이 가장 꽉 차게 나옵니다</span></div>
+ <details><summary>기본 그림 (사진이 없거나 기간에 맞는 사진이 없을 때)</summary>${closedSrc()?`<img src="${esc(closedSrc())}" alt="기본 그림" style="width:100%;max-height:200px;object-fit:contain;border-radius:12px;background:#0d1a14">`:'<span class="fine">기본 그림이 없으면 "영업 준비 중" 글씨만 나옵니다.</span>'}<div class="catrow">${S.assets?'<label class="btn ghost">기본 그림 바꾸기<input type="file" accept="image/*" data-up="closedimg" hidden></label>':''}${S.config.closedImg&&window.TOD_API?'<button class="btn ghost" data-act="closedimgreset">처음 기본 그림으로</button>':''}</div></details></div>`})()}
  ${window.TOD_API?(()=>{const pc=pcfg();return `<div class="panel"><h3>주문서 프린터 <span class="fine">매장 서버 컴퓨터의 COM 포트</span></h3>
  <label class="vchk"><input type="checkbox" id="pOn"${pc.on?' checked':''}> 주문서 출력하기</label>
  <div class="vgrid"><label>COM 포트<input id="pPort" list="pPorts" value="${esc(pc.port)}" placeholder="예: COM3"><datalist id="pPorts">${(S.pPorts||[]).map(x=>`<option value="${esc(x)}">`).join('')}</datalist></label>
@@ -1067,6 +1105,9 @@ async function act(a,d,b){const c=S.mctx;
  case 'vtest':{if(!S.beep){toast('위쪽 \'알림음 켜기\'를 먼저 눌러 주세요','bad');return}const keep=S.config.voice;S.config.voice={...vcfg(),...readVoiceForm()};const inp=document.querySelector('[data-vname="'+d.id+'"]');const t0=S.tablets.find(x=>x.id===d.id);if(t0&&inp){const tmp={...t0,voiceName:inp.value.trim()};VQ.push({t:tmp,kind:d.k,reason:d.k==='call'?((S.config.callReasons||[])[0]||''):'',test:false});runVQ()}S.config.voice=keep;break}
  case 'vsave':{const nv={...vcfg(),...readVoiceForm()};let ok=await saveConfig({voice:nv});const ins=[...document.querySelectorAll('[data-vname]')];for(const el of ins){const t=S.tablets.find(x=>x.id===el.dataset.vname);const val=el.value.trim();if(t&&(t.voiceName||'')!==val)ok=(await w('tablets/'+t.id,r=>r.update({voiceName:val})))&&ok}if(ok)toast('음성 안내를 저장했습니다','ok');break}
  case 'storeopen':{const o=isOpen();if(o&&!armed(b))return;const ok=await saveConfig(o?{open:false,closedAt:Date.now()}:{open:true,openedAt:Date.now()});if(ok)toast(o?'영업을 종료했습니다. 주문용 태블릿에 준비 중 화면이 나옵니다':'영업을 시작했습니다. 주문을 받습니다','ok');delete b.dataset.armed;openUI();break}
+ case 'slup':case 'sldn':case 'sldel':{const i=+b.dataset.i,l=slides().slice();if(!(i>=0&&i<l.length))break;
+  if(a==='sldel'){if(!armed(b))return;l.splice(i,1)}else{const j=a==='slup'?i-1:i+1;if(j<0||j>=l.length)break;const t=l[i];l[i]=l[j];l[j]=t}
+  if(await saveConfig({closedSlides:l}))counterTab();break}
  case 'closedimgreset':await saveConfig({closedImg:undefined});closedUI();counterTab();break;
  case 'vol':{const p=$('#volpop');const show=p&&p.hidden;if(show&&S.vol.m){S.vol.m=false;if(!S.vol.v)S.vol.v=50;S.volBlocked=false;applyVol();saveVol()}volPop(show);break}
  case 'volmute':S.vol.m=!S.vol.m;if(!S.vol.m&&!S.vol.v)S.vol.v=50;S.volBlocked=false;applyVol();saveVol();volPop(true);break;
@@ -1109,7 +1150,8 @@ async function act(a,d,b){const c=S.mctx;
  case 'importgo':{const {d,items}=c;const applyCfg=!!(document.getElementById('impCfg')||{}).checked;const doSync=!!(document.getElementById('impSync')||{}).checked;S.mctx={type:'importing',lock:true};openModal('<h2>가져오는 중…</h2><div class="notice" id="impProg">준비 중</div>');
   const cats0=[...(S.config.categories||[])];(d.categories||[]).forEach(x=>{if(typeof x==='string'&&!cats0.includes(x))cats0.push(x)});items.forEach(it=>{if(!cats0.includes(it.cat))cats0.push(it.cat)});
   const sc={...(S.config.subcats||{})};Object.entries(d.subcats||{}).forEach(([k,v])=>{const cur=[...(sc[k]||[])];(Array.isArray(v)?v:[]).forEach(x=>{if(typeof x==='string'&&!cur.includes(x))cur.push(x)});sc[k]=cur});
-  const extra={};if(applyCfg&&d.config&&typeof d.config==='object'){const k=d.config;if(typeof k.storeName==='string')extra.storeName=k.storeName.slice(0,40);if(Array.isArray(k.callReasons))extra.callReasons=k.callReasons.filter(x=>typeof x==='string').slice(0,20);if(k.voice&&typeof k.voice==='object')extra.voice=k.voice;if(Number(k.videoPct))extra.videoPct=Math.max(20,Math.min(60,Number(k.videoPct)));if([2,3,4].includes(Number(k.gridCols)))extra.gridCols=Number(k.gridCols);if(k.startVol!=null&&Number.isFinite(Number(k.startVol)))extra.startVol=Math.max(0,Math.min(100,Number(k.startVol)));
+  const extra={};if(applyCfg&&d.config&&typeof d.config==='object'){const k=d.config;if(typeof k.storeName==='string')extra.storeName=k.storeName.slice(0,40);if(Array.isArray(k.callReasons))extra.callReasons=k.callReasons.filter(x=>typeof x==='string').slice(0,20);if(k.voice&&typeof k.voice==='object')extra.voice=k.voice;if(Number(k.videoPct))extra.videoPct=Math.max(20,Math.min(60,Number(k.videoPct)));if([2,3,4].includes(Number(k.gridCols)))extra.gridCols=Number(k.gridCols);if(k.startVol!=null&&Number.isFinite(Number(k.startVol)))extra.startVol=Math.max(0,Math.min(100,Number(k.startVol)));if(Number(k.closedInterval))extra.closedInterval=Math.max(1,Math.min(10,Number(k.closedInterval)));if(k.closedOrder==='seq'||k.closedOrder==='random')extra.closedOrder=k.closedOrder;
+   if(Array.isArray(k.closedSlides)&&k.closedSlides.length){const out=[];for(const x of k.closedSlides.slice(0,SL_MAX)){if(!x||typeof x.img!=='string'||!x.img.startsWith('data:image/'))continue;try{const bl=await (await fetch(x.img)).blob();const r=await S.assets.upload(bl,{type:bl.type||'image/jpeg'});const dk=v=>/^\d{4}-\d{2}-\d{2}$/.test(String(v||''))?v:'';out.push({id:r.id,on:x.on!==false,from:dk(x.from),to:dk(x.to),name:String(x.name||'').slice(0,60)})}catch(e){}}if(out.length)extra.closedSlides=out}
    if(k.printer&&typeof k.printer==='object'){const pc={...k.printer};const cur=S.config.printer||{};if(!/^COM\d/i.test(String(pc.port||''))&&cur.port)pc.port=cur.port;extra.printer=pc}
    if(typeof k.closedImg==='string'&&k.closedImg.startsWith('data:image/')){try{const b=await (await fetch(k.closedImg)).blob();const r=await S.assets.upload(b,{type:b.type||'image/jpeg'});extra.closedImg=r.id}catch(x){}}
    if(Array.isArray(k.youtube)&&k.youtube.length){const cur=vids();const add=k.youtube.filter(v=>v&&okYt(v.yt)&&!cur.some(x=>x.yt===v.yt)).map(v=>({yt:v.yt,name:String(v.name||'')}));if(add.length)extra.videos=[...cur,...add],extra.videoId=undefined,extra.videoName=undefined,extra.videoSize=undefined}
@@ -1165,8 +1207,17 @@ function bind(e){const el=e.target,c=S.mctx;
  if(el.dataset.f){obj[el.dataset.f]=el.type==='checkbox'?el.checked:el.dataset.num!=null?(el.value===''?'':Number(el.value)):el.value;if(e.type==='change'&&el.dataset.f==='cat'&&c.type==='menu'){c.m.sub='';menuModal();return}}
  if(el.dataset.p){const k=el.dataset.p.split('.');const g=c.m.groups[+k[0]];if(!g)return;if(k[1]==='c'){const ch=g.choices[+k[2]];if(ch)ch[k[3]]=k[3]==='price'?(Number(el.value)||0):el.value}else g[k[1]]=el.type==='checkbox'?el.checked:el.value}}
 document.addEventListener('input',bind);
-document.addEventListener('change',e=>{bind(e);upload(e)});
+document.addEventListener('change',e=>{bind(e);upload(e);slChange(e)});
+async function slChange(e){const el=e.target;if(!el||!el.id&&!(el.dataset&&el.dataset.sl))return;
+ if(el.id==='slInt'){if(await saveConfig({closedInterval:Math.max(1,Math.min(10,+el.value||1))}))toast(el.value+'분마다 바뀝니다','ok');counterTab();return}
+ if(el.id==='slOrd'){if(await saveConfig({closedOrder:el.value==='seq'?'seq':'random'}))toast(el.value==='seq'?'차례대로 바뀝니다':'무작위로 바뀝니다','ok');counterTab();return}
+ if(!el.dataset||!el.dataset.sl)return;const i=+el.dataset.i,l=slides().map(x=>({...x}));if(!(i>=0&&i<l.length))return;
+ if(el.dataset.sl==='on')l[i].on=el.checked;else{const v=/^\d{4}-\d{2}-\d{2}$/.test(el.value)?el.value:'';l[i][el.dataset.sl]=v;if(l[i].from&&l[i].to&&l[i].from>l[i].to){toast('시작일이 끝일보다 늦습니다','bad');counterTab();return}}
+ if(await saveConfig({closedSlides:l}))counterTab()}
 async function upload(e){const el=e.target;if(!el.dataset||!el.dataset.up)return;
+ if(el.dataset.up==='slides'){const cur=slides(),fs=[...(el.files||[])].filter(f=>/^image\//.test(f.type));el.value='';if(!fs.length)return;const room=SL_MAX-cur.length;if(room<=0)return toast('사진은 최대 '+SL_MAX+'장까지입니다','bad');const use=fs.slice(0,room);const add=[];let fail=0;
+  for(let k=0;k<use.length;k++){toast('사진 올리는 중… '+(k+1)+' / '+use.length);try{const bl=await shrinkImg(use[k]);const r=await S.assets.upload(bl,{type:bl.type||'image/jpeg'});add.push({id:r.id,on:true,from:'',to:'',name:String(use[k].name||'').slice(0,60)})}catch(x){fail++}}
+  if(add.length&&await saveConfig({closedSlides:[...slides(),...add]}))toast('사진 '+add.length+'장을 추가했습니다'+(fail?' · 실패 '+fail+'장':'')+(fs.length>room?' · '+(fs.length-room)+'장은 100장을 넘어 빠졌습니다':''),fail?'bad':'ok');else if(fail)toast('사진을 올리지 못했습니다','bad');counterTab();return}
  if(el.dataset.up==='closedimg'){const f=el.files&&el.files[0];el.value='';if(!f)return;if(!/^image\//.test(f.type))return toast('그림 파일을 골라 주세요','bad');try{toast('그림을 올리는 중…');const r=await S.assets.upload(f,{type:f.type});if(await saveConfig({closedImg:r.id}))toast('준비 중 화면 그림을 바꿨습니다','ok');counterTab()}catch(x){toast('그림을 올리지 못했습니다','bad')}return}
  if(el.dataset.up==='menuimport'){const f=el.files&&el.files[0];el.value='';if(!f)return;let d;try{d=JSON.parse(await f.text())}catch(x){return toast('메뉴 파일을 읽을 수 없습니다','bad')}
   if(!d||d.format!=='table-order-menu'||!Array.isArray(d.items))return toast('테이블 오더 메뉴 파일이 아닙니다','bad');
