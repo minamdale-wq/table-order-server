@@ -260,7 +260,7 @@ button.opsw.armed{background:#c0392b;border-color:#c0392b;color:#fff;font-weight
 /* ---------- 모달 ---------- */
 .modal{position:fixed;inset:0;background:#000000b8;display:grid;place-items:center;padding:16px;z-index:20}
 .modal[hidden]{display:none}
-.sheet{background:var(--card);border-radius:20px;box-shadow:0 24px 70px #000a;width:min(760px,100%);max-height:92vh;height:92dvh;overflow:auto;padding:clamp(18px,2vw,32px);display:grid;gap:14px}
+.sheet{background:var(--card);border-radius:20px;box-shadow:0 24px 70px #000a;width:min(760px,100%);max-height:92vh;max-height:92dvh;overflow:auto;padding:clamp(18px,2vw,32px);display:grid;gap:14px;align-content:start}
 .sheet.big{font-size:clamp(16px,1.1vw,26px);width:min(1000px,100%)}
 .sheet h2{margin:0;font-size:1.6em;line-height:1.15}
 .sheet fieldset{border:0;padding:0;margin:0;display:grid;gap:.5em}
@@ -386,6 +386,8 @@ es.addEventListener('change',e=>{let d;try{d=JSON.parse(e.data)}catch(x){return}
 es.addEventListener('peers',e=>{try{peers=JSON.parse(e.data)}catch(x){return}peersL.forEach(f=>{try{f({peers,joined:[],left:[],updated:[]})}catch(x){}})});
 es.onerror=()=>setConn(false);
 setInterval(hb,10000);
+/* 실시간 알림을 놓치는 태블릿(오래된 WebView 등)을 위해 15초마다 한 번씩 다시 확인 (바뀐 게 있을 때만 화면 갱신) */
+setInterval(()=>{try{if(document.hidden)return}catch(x){}chL.forEach(f=>{try{f(null)}catch(e){}})},15000);
 /* 서버가 다시 켜진 뒤에도 연결이 안 돌아오면(오래된 WebView 등) 서버가 살아 있는지 확인하고 화면을 새로 불러옴 */
 let lostAt=0;connL.add(v=>{lostAt=v?0:Date.now()});
 setInterval(async()=>{if(connected){lostAt=0;return}if(!lostAt){lostAt=Date.now();return}if(Date.now()-lostAt<25000||window.TOD_RELOADING)return;
@@ -399,7 +401,7 @@ function docRef(p){const id=p.split('/').pop();return{id,path:p,
  get:async()=>snap(id,(await api('/api/doc',{path:p})).doc),
  set:d=>write([{op:'set',path:p,data:d}]),update:d=>write([{op:'update',path:p,data:d}]),delete:()=>write([{op:'delete',path:p}]),
  onSnapshot(next){let alive=true,busy=false,again=false;
-  const run=async()=>{if(busy){again=true;return}busy=true;try{const r=await api('/api/doc',{path:p});if(alive)next(snap(id,r.doc))}catch(e){}busy=false;if(again&&alive){again=false;run()}};
+  let lastSig=null;const run=async()=>{if(busy){again=true;return}busy=true;try{const r=await api('/api/doc',{path:p});const sg=JSON.stringify(r.doc||null);if(alive&&sg!==lastSig){lastSig=sg;next(snap(id,r.doc))}}catch(e){}busy=false;if(again&&alive){again=false;run()}};
   const f=ps=>{if(!ps||ps.includes(p))run()};chL.add(f);run();return()=>{alive=false;chL.delete(f)}}}}
 function query(col,spec){const S={col,where:spec.where||[],order:spec.order||null,limit:spec.limit||null};
  const fetchDocs=async()=>(await api('/api/query',S)).docs.map(x=>snap(x.id,x));

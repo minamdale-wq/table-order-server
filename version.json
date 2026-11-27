@@ -1,10 +1,10 @@
 {
- "version": "1.4.17",
+ "version": "1.4.18",
  "files": [
   "server.js",
   "public/index.html",
   "version.json",
   "README.md"
  ],
- "notes": "주문 태블릿 동영상 소리는 켤 때마다 5로 시작 (설정 → 매장·기기에서 바꿀 수 있음)"
+ "notes": "주문 확인·직원 호출 창이 화면 가득 늘어나던 문제 수정. 실시간 알림을 놓친 태블릿도 15초 안에 자동으로 맞춰짐"
 }
