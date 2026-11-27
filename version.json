@@ -1,10 +1,10 @@
 {
- "version": "1.4.16",
+ "version": "1.4.17",
  "files": [
   "server.js",
   "public/index.html",
   "version.json",
   "README.md"
  ],
- "notes": "화면 파일을 메모리에서 보내도록 바꿔, 느린 태블릿 때문에 업데이트가 막히던 문제 해결"
+ "notes": "주문 태블릿 동영상 소리는 켤 때마다 5로 시작 (설정 → 매장·기기에서 바꿀 수 있음)"
 }
