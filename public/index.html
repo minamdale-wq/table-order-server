@@ -527,7 +527,7 @@ function slidesActive(){const t=dkey();return slides().filter(x=>slLive(x,t)).ma
 function seedPerm(n,seed){const a=[];for(let i=0;i<n;i++)a.push(i);let x=((seed+1)*2654435761)>>>0||1;const r=()=>{x^=x<<13;x>>>=0;x^=x>>>17;x^=x<<5;x>>>=0;return x/4294967296};for(let i=n-1;i>0;i--){const j=Math.floor(r()*(i+1));const t=a[i];a[i]=a[j];a[j]=t}return a}
 function permFor(n,c){const p=seedPerm(n,c);if(n>2){const q=seedPerm(n,c-1);if(p[0]===q[n-1]){const t=p[0];p[0]=p[1];p[1]=t}}return p}
 function slideAt(list,slot){const n=list.length;if(!n)return '';if(n===1)return list[0];if(S.config.closedOrder==='seq'||n===2)return list[((slot%n)+n)%n];return list[permFor(n,Math.floor(slot/n))[slot%n]]}
-const slSlot=()=>Math.floor(NOW()/(slInt()*60000));
+const slSlot=()=>Math.floor((typeof NOW==='function'?NOW():Date.now())/(slInt()*60000));
 function closedCur(){const l=slidesActive();return l.length?slideAt(l,slSlot()):closedSrc()}
 function closedUI(){const ov=$('#closedov');if(!ov)return;const shut=!isOpen();ov.hidden=!shut;if(!shut)return;const src=closedCur(),im=$('#closedimg'),tx=$('#closedtxt'),bg=$('#closedbg');
  if(!src){im.hidden=true;tx.hidden=false;bg.style.backgroundImage='';im.dataset.want='';return}
