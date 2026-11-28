@@ -1,10 +1,10 @@
 {
- "version": "1.6.2",
+ "version": "1.6.3",
  "files": [
   "server.js",
   "public/index.html",
   "version.json",
   "README.md"
  ],
- "notes": "확인 필요 탭을 설정 화면 맨 아래로 옮김"
+ "notes": "메뉴 사진을 올리면 1200픽셀로 자동으로 줄여서 저장 (빠르게 열림)"
 }
