@@ -1,10 +1,10 @@
 {
- "version": "1.6.1",
+ "version": "1.6.2",
  "files": [
   "server.js",
   "public/index.html",
   "version.json",
   "README.md"
  ],
- "notes": "설정 → QR 결제: 가능/불가능 스위치 (가능이면 손님 주문 화면에 QR 결제가 보이고, 불가능이면 안 보임)"
+ "notes": "확인 필요 탭을 설정 화면 맨 아래로 옮김"
 }

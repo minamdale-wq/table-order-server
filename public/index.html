@@ -363,6 +363,7 @@ details summary{cursor:pointer;min-height:44px;display:flex;align-items:center;f
 @media(max-width:900px){.board{grid-template-columns:minmax(0,1fr)}}
 @media(max-width:600px){table{font-size:13px}.stack thead{display:none}.stack tr{display:grid;padding-block:10px}.stack td{display:flow-root;border:0;padding:3px 0;padding-inline-start:8em;text-align:start}.stack td::before{content:attr(data-l);float:inline-start;width:7.5em;margin-inline-start:-8em;white-space:normal;color:var(--mute)}.stack td:empty{display:none}.crow{grid-template-columns:minmax(0,1fr) 90px auto}}
 @media(prefers-reduced-motion:reduce){#toast{transition:none}}
+.setcheck{margin-top:22px}
 </style><script>new MutationObserver(()=>{for(const c of document.querySelectorAll('.stack td:not([data-l])')){let i=0,p=c;while(p=p.previousElementSibling)i+=p.colSpan;c.dataset.l=(c.closest('table').rows[0].cells[i]||{}).textContent||''}}).observe(document,{childList:true,subtree:true})</script></head><body>
 <div id="app"><div class="splash">불러오는 중…</div></div>
 <script>/* 화면 엔진(웹뷰)이 너무 오래돼 화면이 안 뜨면 원인을 보여 준다 (옛 문법으로 작성) */
@@ -881,7 +882,7 @@ function pinModal(){S.mctx=S.mctx&&S.mctx.type==='pin'?S.mctx:{type:'pin',v:''};
  openModal(`<h2>PIN 입력</h2><div class="bigsum"><span>${'●'.repeat(S.mctx.v.length)||'&nbsp;'}</span></div><div class="pinpad">${[1,2,3,4,5,6,7,8,9,'지움',0,'확인'].map(k=>`<button data-act="pin" data-k="${k}">${k}</button>`).join('')}</div><div class="mfoot"><button class="btn ghost" data-act="close">닫기</button></div>`)}
 
 /* ---------- 카운터 화면 ---------- */
-const TABS=[['orders','주문 현황'],['settle','후불 정산'],['menu','메뉴 관리'],['tablets','태블릿'],['sales','내역·매출'],['incidents','장애 기록'],['check','확인 필요'],['settings','설정']];
+const TABS=[['orders','주문 현황'],['settle','후불 정산'],['menu','메뉴 관리'],['tablets','태블릿'],['sales','내역·매출'],['incidents','장애 기록'],['settings','설정']];
 function counterShell(){
  document.documentElement.classList.add('kx');
  app.innerHTML=`<div class="ctr"><header class="khead">${LEAF_TL}<h1>${ICON.emblem}<span class="kname">${esc(S.config.storeName||'테이블 오더')}</span><small>주문받는 태블릿</small></h1><span class="pill" id="kOnline"></span><span class="pill">${esc(S.today)}</span><span class="pill" id="openPill"></span><button class="btn sm" data-act="storeopen" id="openBtn"></button><button class="btn sm" data-act="beep" id="beepBtn">${S.beep?'알림음 켜짐':'알림음 켜기'}</button></header><div class="calls" id="kcalls" hidden></div><nav class="ktabs scroll" id="ktabs"></nav><main id="kmain"></main></div>`;
@@ -892,9 +893,9 @@ const inEdit=()=>{const a=document.activeElement;if(!a||!$('#kmain')||!$('#kmain
 function counterTab(){
  const k=$('#kmain');if(!k)return;openUI();
  const nNew=S.orders.filter(o=>o.status==='new'&&(S.showTest||!o.test||o.payId)).length;const nDec=S.decisions.filter(d=>d.status!=='done').length;const nInc=S.incidents.filter(i=>!i.endAt).length;
- $('#ktabs').innerHTML=TABS.map(([id,l])=>`<button class="${S.tab===id?'on':''}" data-act="tab" data-t="${id}">${TABICON[id]||''}<span>${l}</span>${id==='orders'&&nNew?`<span class="n">${nNew}</span>`:''}${id==='check'&&nDec?`<span class="n w">${nDec}</span>`:''}${id==='incidents'&&nInc?`<span class="n w">${nInc}</span>`:''}</button>`).join('');
+ $('#ktabs').innerHTML=TABS.map(([id,l])=>`<button class="${S.tab===id?'on':''}" data-act="tab" data-t="${id}">${TABICON[id]||''}<span>${l}</span>${id==='orders'&&nNew?`<span class="n">${nNew}</span>`:''}${id==='settings'&&nDec?`<span class="n w">${nDec}</span>`:''}${id==='incidents'&&nInc?`<span class="n w">${nInc}</span>`:''}</button>`).join('');
  if(inEdit()||S.dragging){S.pending=true;return}
- k.innerHTML=({orders:vOrders,settle:vSettle,menu:vMenu,tablets:vTablets,sales:vSales,incidents:vIncidents,check:vCheck,settings:vSettings})[S.tab]();
+ k.innerHTML=({orders:vOrders,settle:vSettle,menu:vMenu,tablets:vTablets,sales:vSales,incidents:vIncidents,check:vSettings,settings:vSettings})[S.tab]();
  if(S.mctx&&S.mctx.type==='pay')payModal();
  renderCalls();
 }
@@ -1080,7 +1081,8 @@ function vSettings(){const c=S.config;const t=me()||{};
  <div class="catrow"><button class="btn ghost" data-act="updcheck">업데이트 확인</button><button class="btn ghost" data-act="updback">이전 버전으로 되돌리기</button></div>
  <span class="fine">업데이트하면 주문용 태블릿은 장바구니가 빈 순간에 저절로 새로고침됩니다. 서버 컴퓨터가 인터넷에 연결돼 있어야 합니다.${S.info&&S.info.supervised===false?' 지금 서버가 시작 파일(start-windows.bat 등)로 켜지지 않아서, 서버 프로그램이 바뀌는 업데이트 뒤에는 서버 창을 직접 다시 켜야 합니다.':''}</span>
  <hr style="border:0;border-top:1px solid var(--line);width:100%"><b>관리 PIN 바꾸기</b><div class="catrow"><input id="newPin" type="password" inputmode="numeric" maxlength="6" placeholder="새 PIN (숫자 4~6자리)" style="max-width:240px" autocomplete="off"><button class="btn ghost" data-act="pinchange">바꾸기</button></div>
- <span class="fine">고객 화면 왼쪽 위 매장 이름을 3초 안에 5번 누르면 이 PIN을 묻고 기기 메뉴가 열립니다.</span></div></div>`}
+ <span class="fine">고객 화면 왼쪽 위 매장 이름을 3초 안에 5번 누르면 이 PIN을 묻고 기기 메뉴가 열립니다.</span></div></div>
+ <div class="setcheck" id="setCheck">${vCheck()}</div>`}
 
 /* ---------- 이벤트 ---------- */
 document.addEventListener('click',e=>{const b=e.target.closest('[data-act]');if(!b||b.disabled)return;const a=b.dataset.act,d=b.dataset;
