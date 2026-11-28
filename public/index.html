@@ -253,6 +253,7 @@ button.opsw{display:inline-flex;align-items:stretch;padding:3px;border-radius:99
 button.opsw .seg{display:flex;align-items:center;padding:0 16px;border-radius:999px;font-weight:800;font-size:15px;color:#9a8f80;white-space:nowrap}
 button.opsw.is-open{border-color:#1f4632}button.opsw.is-open .so{background:linear-gradient(180deg,#2d8a57,#1f6b42);color:#fff;box-shadow:0 2px 8px #1f6b4255}
 button.opsw.is-closed{border-color:#c0392b}button.opsw.is-closed .sc{background:#c0392b;color:#fff;animation:sndpulse 1.4s ease-in-out infinite}
+button.opsw.paysw.is-closed{border-color:#bdb3a3}button.opsw.paysw.is-closed .sc{animation:none;background:#8a8a8a}button.opsw.paysw{align-self:flex-start}
 button.opsw.armed{background:#c0392b;border-color:#c0392b;color:#fff;font-weight:800;padding:0 18px;font-size:15px}
 .col.col-done{background:#e3efe6!important;border-color:#b9d6c1!important}.col.col-done h3{color:#1f6b42}
 .ticket.st-done{opacity:1!important;border-top-color:#2d8a57!important;background:linear-gradient(180deg,#eef7f0,#f8fcf9 50%)!important;color:#4d5a50}
@@ -1039,10 +1040,11 @@ function vSettings(){const c=S.config;const t=me()||{};
   <div class="slbtn"><button class="btn sm ghost" data-act="slup" data-i="${i}"${i?'':' disabled'}>▲</button><button class="btn sm ghost" data-act="sldn" data-i="${i}"${i<sl.length-1?'':' disabled'}>▼</button><button class="btn sm ghost" data-act="sldel" data-i="${i}">삭제</button></div></div>`}).join('')}</div>
  <div class="catrow">${S.assets?`<label class="btn${sl.length>=SL_MAX?' ghost':''}">사진 추가 (여러 장 한 번에)<input type="file" accept="image/*" multiple data-up="slides" hidden${sl.length>=SL_MAX?' disabled':''}></label>`:''}<span class="fine">${sl.length} / ${SL_MAX}장 · 가로세로 4:3 사진이 가장 꽉 차게 나옵니다</span></div>
  <details><summary>기본 그림 (사진이 없거나 기간에 맞는 사진이 없을 때)</summary>${closedSrc()?`<img src="${esc(closedSrc())}" alt="기본 그림" style="width:100%;max-height:200px;object-fit:contain;border-radius:12px;background:#0d1a14">`:'<span class="fine">기본 그림이 없으면 "영업 준비 중" 글씨만 나옵니다.</span>'}<div class="catrow">${S.assets?'<label class="btn ghost">기본 그림 바꾸기<input type="file" accept="image/*" data-up="closedimg" hidden></label>':''}${S.config.closedImg&&window.TOD_API?'<button class="btn ghost" data-act="closedimgreset">처음 기본 그림으로</button>':''}</div></details></div>`})()}
- ${window.TOD_API?(()=>{const pm=payCfgC();return `<div class="panel"><h3>결제 (QR 결제)</h3><span class="fine">켜면 손님이 주문할 때 태블릿에 QR이 뜨고, 휴대폰으로 결제하면 주문이 바로 들어옵니다. 지금은 <b>테스트</b>만 가능합니다. 실제 결제는 퍼스트포스 연동 자료(또는 결제 회사 가입)를 받은 뒤 연결합니다.</span>
- <label class="form"><span>결제 방식</span><select id="payMode"><option value="off"${pm.mode==='off'?' selected':''}>끄기 · 지금처럼 카운터에서 후불</option><option value="test"${pm.mode==='test'?' selected':''}>테스트 QR 결제 (실제로 돈이 나가지 않음)</option><option value="pos" disabled>포스 연동 (퍼스트포스) · 연동 자료 받으면 열림</option></select></label>
- <label class="vchk"><input type="checkbox" id="payCounter"${pm.counter!==false?' checked':''}> 손님이 '카운터에서 결제 (후불)'도 고를 수 있게</label>
- <div class="catrow"><button class="btn" data-act="paysave">결제 설정 저장</button></div></div>`})():''}
+ ${window.TOD_API?(()=>{const pm=payCfgC(),on=pm.mode!=='off';return `<div class="panel"><h3>QR 결제</h3>
+ <button class="opsw paysw ${on?'is-open':'is-closed'}" data-act="paytoggle"><span class="seg so">${on?'● ':''}QR 결제 가능</span><span class="seg sc">${on?'':'● '}불가능</span></button>
+ <span class="fine">${on?'주문할 때 손님 화면에 <b>QR 결제</b> 버튼이 보입니다.':'손님 화면에 QR 결제가 <b>보이지 않고</b>, 지금처럼 카운터에서 후불로 결제합니다.'}</span>
+ <label class="form"><span>결제 연결</span><select id="payProv"><option value="test" selected>테스트 · 실제로 돈이 나가지 않음</option><option value="pos" disabled>포스 연동 (퍼스트포스) · 연동 자료를 받으면 열림</option></select></label>
+ <label class="vchk"><input type="checkbox" id="payCounter"${pm.counter!==false?' checked':''}> 손님이 '카운터에서 결제 (후불)'도 고를 수 있게</label></div>`})():''}
  ${window.TOD_API?(()=>{const pc=pcfg();return `<div class="panel"><h3>주문서 프린터 <span class="fine">매장 서버 컴퓨터의 COM 포트</span></h3>
  <label class="vchk"><input type="checkbox" id="pOn"${pc.on?' checked':''}> 주문서 출력하기</label>
  <div class="vgrid"><label>COM 포트<input id="pPort" list="pPorts" value="${esc(pc.port)}" placeholder="예: COM3"><datalist id="pPorts">${(S.pPorts||[]).map(x=>`<option value="${esc(x)}">`).join('')}</datalist></label>
@@ -1150,7 +1152,7 @@ async function act(a,d,b){const c=S.mctx;
  case 'qrpay':await qrPayStart();break;
  case 'qrcancel':{const id=S.mctx&&S.mctx.id;qrStop();S.mctx=null;closeModal();if(id){try{await window.TOD_API('/api/pay/cancel',{id})}catch(e){}}reviewModal();break}
  case 'qrtest':{const id=S.mctx&&S.mctx.id;if(!id)break;b.disabled=true;try{await fetch('/pay/'+id+'/test',{method:'POST'})}catch(e){toast('테스트 결제를 보내지 못했습니다','bad')}b.disabled=false;break}
- case 'paysave':{const m=$('#payMode').value,c=$('#payCounter').checked;if(await saveConfig({payment:{mode:['off','test'].includes(m)?m:'off',counter:c}}))toast(m==='off'?'QR 결제를 껐습니다':'테스트 QR 결제를 켰습니다','ok');counterTab();break}
+ case 'paytoggle':{const pm=payCfgC(),on=pm.mode!=='off';if(await saveConfig({payment:{...pm,mode:on?'off':'test'}}))toast(on?'QR 결제를 껐습니다. 손님 화면에서 보이지 않습니다':'QR 결제를 켰습니다. 손님 화면에 보입니다','ok');counterTab();break}
  case 'morder':S.mOrder=!S.mOrder;counterTab();break;
  case 'mup':case 'mdn':{const m=menuById(d.id);if(!m)return;const g=catOrder(m.cat).filter(x=>gk(x)===gk(m));moveTo(m.id,g.findIndex(x=>x.id===m.id)+1+(a==='mup'?-1:1));break}
  case 'msold':{const m=menuById(d.id);if(m)await w('menu/'+m.id,r=>r.update({soldOut:!m.soldOut}));break}
@@ -1242,7 +1244,7 @@ function bind(e){const el=e.target,c=S.mctx;
  if(el.dataset.p){const k=el.dataset.p.split('.');const g=c.m.groups[+k[0]];if(!g)return;if(k[1]==='c'){const ch=g.choices[+k[2]];if(ch)ch[k[3]]=k[3]==='price'?(Number(el.value)||0):el.value}else g[k[1]]=el.type==='checkbox'?el.checked:el.value}}
 document.addEventListener('input',bind);
 document.addEventListener('change',e=>{bind(e);upload(e);slChange(e)});
-async function slChange(e){const el=e.target;if(!el||!el.id&&!(el.dataset&&el.dataset.sl))return;
+async function slChange(e){const el=e.target;if(el&&el.id==='payCounter'){if(await saveConfig({payment:{...payCfgC(),counter:el.checked}}))toast(el.checked?'카운터 결제도 고를 수 있습니다':'QR 결제만 보입니다','ok');return}if(!el||!el.id&&!(el.dataset&&el.dataset.sl))return;
  if(el.id==='slInt'){if(await saveConfig({closedInterval:Math.max(1,Math.min(10,+el.value||1))}))toast(el.value+'분마다 바뀝니다','ok');counterTab();return}
  if(el.id==='slOrd'){if(await saveConfig({closedOrder:el.value==='seq'?'seq':'random'}))toast(el.value==='seq'?'차례대로 바뀝니다':'무작위로 바뀝니다','ok');counterTab();return}
  if(!el.dataset||!el.dataset.sl)return;const i=+el.dataset.i,l=slides().map(x=>({...x}));if(!(i>=0&&i<l.length))return;

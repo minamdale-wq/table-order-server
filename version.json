@@ -1,10 +1,10 @@
 {
- "version": "1.6.0",
+ "version": "1.6.1",
  "files": [
   "server.js",
   "public/index.html",
   "version.json",
   "README.md"
  ],
- "notes": "QR 결제(테스트 모드): 주문할 때 태블릿에 QR → 휴대폰으로 결제 → 주문 자동 접수. 설정 → 결제(QR 결제)에서 켜기. 실제 결제는 포스 연동 후"
+ "notes": "설정 → QR 결제: 가능/불가능 스위치 (가능이면 손님 주문 화면에 QR 결제가 보이고, 불가능이면 안 보임)"
 }
