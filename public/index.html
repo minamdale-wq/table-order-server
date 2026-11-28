@@ -265,6 +265,9 @@ button.opsw.armed{background:#c0392b;border-color:#c0392b;color:#fff;font-weight
 .slmeta{display:grid;gap:6px;font-size:14px}.slmeta .vchk{display:inline-flex;margin:0 0 0 6px}.slst{font-size:12px;font-weight:800;color:#1f6b42}.slrow.off .slst{color:#9a8f80}
 .sldate input{font:inherit;font-size:13px;padding:4px 6px;border:1px solid var(--line);border-radius:8px}.slbtn{display:flex;gap:4px;flex-wrap:wrap;justify-content:flex-end}
 @media(max-width:640px){.slrow{grid-template-columns:90px minmax(0,1fr)}.slrow img{width:90px}.slbtn{grid-column:1/-1}}
+.qrbox{display:grid;grid-template-columns:minmax(200px,300px) minmax(0,1fr);gap:20px;align-items:center}.qrbox img{width:100%;aspect-ratio:1;background:#fff;border-radius:16px;padding:8px;box-shadow:0 8px 24px -12px #0005}
+.qrsteps{margin:10px 0;padding-left:1.3em;line-height:1.8}.qrleft{font-weight:800;color:#a05a00;font-size:1.1em}
+@media(max-width:700px){.qrbox{grid-template-columns:1fr}.qrbox img{max-width:260px;margin:0 auto}}
 /* ---------- 모달 ---------- */
 .modal{position:fixed;inset:0;background:#000000b8;display:grid;place-items:center;padding:16px;z-index:20}
 .modal[hidden]{display:none}
@@ -809,7 +812,7 @@ function renderCart(){
  const el=$('#ccart');if(!el)return;const calc=S.cart.map(lineCalc);const total=calc.reduce((s,c,i)=>s+c.unit*S.cart[i].qty,0);const bad=calc.some(c=>!c.ok);const cnt=S.cart.reduce((s,l)=>s+l.qty,0);
  el.innerHTML=`<div class="carth">${ICON.basket}<b>장바구니</b><span class="cnt">${cnt}개</span>${S.cart.length?'<button class="link" data-act="cartclear">비우기</button>':''}</div>
  <div class="lines">${S.cart.length?S.cart.map((l,i)=>{const c=calc[i];return `<div class="line"><div><b>${esc(c.name)}</b>${l.opts.length?`<small>${esc(l.opts.map(o=>o.n).join(', '))}</small>`:''}${c.ok?'':`<em>${esc(c.why)} · 빼 주세요</em>`}</div><b class="lp">${c.ok?won(c.unit*l.qty):'-'}</b><div class="qty"><button data-act="cq" data-i="${i}" data-d="-1" aria-label="빼기">−</button><span>${l.qty}</span><button data-act="cq" data-i="${i}" data-d="1" aria-label="더하기">+</button></div></div>`}).join(''):`<div class="empty">${ICON.basketBig}<span>메뉴를 눌러 담아 주세요</span></div>`}</div>
- <div class="cartf"><div class="sum"><span>합계</span><b>${won(total)}</b></div><button class="cta" data-act="review"${!S.cart.length||bad?' disabled':''}><span>주문하기</span><i class="arr">${ICON.arrow}</i></button><p class="fine pay">${ICON.card}<span>결제는 이용 후 카운터에서 합니다 (후불)</span></p></div>`;
+ <div class="cartf"><div class="sum"><span>합계</span><b>${won(total)}</b></div><button class="cta" data-act="review"${!S.cart.length||bad?' disabled':''}><span>주문하기</span><i class="arr">${ICON.arrow}</i></button><p class="fine pay">${ICON.card}<span>${payOn()?'휴대폰 QR 결제 또는 카운터 결제':'결제는 이용 후 카운터에서 합니다 (후불)'}</span></p></div>`;
 }
 function optModal(){const c=S.mctx,m=menuById(c.mid);if(!m){closeModal();return}
  let unit=Number(m.price)||0;let missing=false;
@@ -818,14 +821,37 @@ function optModal(){const c=S.mctx,m=menuById(c.mid);if(!m){closeModal();return}
  openModal(`<h2>${esc(m.name)}</h2>${m.desc?`<p class="fine">${esc(m.desc)}</p>`:''}${gs}<div class="qty">수량 <button data-act="optqty" data-d="-1">−</button><span>${c.qty}</span><button data-act="optqty" data-d="1">+</button></div><div class="mfoot"><button class="btn ghost" data-act="close">닫기</button><button class="cta" data-act="optadd"${missing?' disabled':''}>${won(unit*c.qty)} 담기</button></div>`,'big');
 }
 function addLine(mid,opts,qty){const k=mid+'|'+JSON.stringify(opts);const ex=S.cart.find(l=>l.k===k);if(ex)ex.qty+=qty;else S.cart.push({k,mid,name:(menuById(mid)||{}).name||'',opts,qty});S.pendingId=null;renderCart()}
+const payCfgC=()=>({mode:'off',counter:true,...((S.config||{}).payment||{})});
+const payOn=()=>!!window.TOD_API&&payCfgC().mode!=='off';
+async function qrPayStart(){
+ if(S.paying)return;const t=me();if(!t)return;if(!isOpen()){closeModal();closedUI();toast('지금은 영업 준비 중입니다','bad');return}
+ const calc=S.cart.map(lineCalc);if(!S.cart.length||calc.some(c=>!c.ok))return reviewModal();
+ S.paying=true;reviewModal();
+ const items=S.cart.map((l,i)=>({mid:l.mid,opts:calc[i].opts.map(o=>({g:o.g,n:o.n})),qty:l.qty}));
+ let r;try{r=await window.TOD_API('/api/pay/start',{tabletId:S.dev,items})}catch(e){S.paying=false;reviewModal();toast(e.message||'결제를 시작하지 못했습니다','bad');return}
+ S.paying=false;qrPayModal(r)}
+function qrPayModal(r){
+ S.mctx={type:'qrpay',id:r.id,lock:true};const test=payCfgC().mode==='test';
+ openModal(`<h2>휴대폰으로 QR을 찍어 결제해 주세요</h2>
+ <div class="qrbox"><img src="/pay/${esc(r.id)}/qr.svg" alt="결제 QR 코드"><div class="qrinfo"><div class="bigsum"><span>결제 금액</span><span>${won(r.total)}</span></div>
+ <ol class="qrsteps"><li>휴대폰 <b>카메라</b>로 왼쪽 QR을 찍어요</li><li>열린 화면에서 <b>결제</b>를 눌러요</li><li>결제가 끝나면 주문이 <b>자동으로</b> 들어가요</li></ol>
+ <div class="qrleft" id="qrleft"></div>${test?'<div class="notice">테스트 결제 중입니다. 실제로 돈이 나가지 않습니다. 휴대폰이 매장 와이파이에 연결돼 있어야 열려요.</div>':''}</div></div>
+ <div class="mfoot"><button class="btn ghost" data-act="qrcancel">결제 취소</button>${test?'<button class="btn ghost" data-act="qrtest">이 태블릿에서 테스트 결제</button>':''}</div>`,'big');
+ clearInterval(S.qrT);const tick=()=>{const el=$('#qrleft');if(!el){clearInterval(S.qrT);return}const left=Math.max(0,Math.ceil((r.expiresAt-NOW())/1000));el.textContent='남은 시간 '+Math.floor(left/60)+':'+String(left%60).padStart(2,'0')};tick();S.qrT=setInterval(tick,1000);
+ if(S.qrSub){try{S.qrSub()}catch(e){}}
+ S.qrSub=S.db.doc('payments/'+r.id).onSnapshot(d=>{const x=d&&d.exists?d.data():null;if(!x||!S.mctx||S.mctx.id!==r.id)return;
+  if(x.status==='paid'){qrStop();S.cart=[];renderCart();S.mctx={type:'done'};openModal(`<h2>결제가 완료됐습니다</h2><div class="notice">주문이 매장으로 들어갔습니다. 확인되면 화면과 소리로 알려 드릴게요.</div><div class="mfoot"><button class="cta" data-act="close">확인</button></div>`,'big');setTimeout(()=>{if(S.mctx&&S.mctx.type==='done')closeModal()},6000)}
+  else if(x.status==='expired'){qrStop();S.mctx=null;closeModal();toast('결제 시간이 지났습니다. 다시 결제해 주세요','bad')}
+  else if(x.status==='canceled'){qrStop();S.mctx=null;closeModal();toast('결제를 취소했습니다')}},()=>{})}
+function qrStop(){clearInterval(S.qrT);if(S.qrSub){try{S.qrSub()}catch(e){}S.qrSub=null}}
 function reviewModal(err){
  const calc=S.cart.map(lineCalc);const total=calc.reduce((s,c,i)=>s+c.unit*S.cart[i].qty,0);const t=me()||{};
  S.mctx={type:'review',lock:S.sending};
  openModal(`<h2>주문 내용을 확인해 주세요</h2><div class="review"><ul>${S.cart.map((l,i)=>`<li><span><b>${esc(calc[i].name)}</b>${l.opts.length?`<small>${esc(l.opts.map(o=>o.n).join(', '))}</small>`:''}</span><span>× ${l.qty}</span><b>${won(calc[i].unit*l.qty)}</b></li>`).join('')}</ul></div>
  <div class="bigsum"><span>합계</span><span>${won(total)}</span></div>
- <div class="notice">${esc(t.place||t.name||'')} 자리로 주문합니다. 결제는 이용 후 카운터에서 합니다 (후불).${t.testMode?' <b>테스트 모드: 실제 주문으로 집계되지 않습니다.</b>':''}</div>
+ <div class="notice">${esc(t.place||t.name||'')} 자리로 주문합니다. ${payOn()?'휴대폰으로 <b>QR 결제</b>하면 바로 주문이 들어가요.'+(payCfgC().counter?' 카운터에서 나중에 결제하셔도 됩니다.':''):'결제는 이용 후 카운터에서 합니다 (후불).'}${t.testMode?' <b>테스트 모드: 실제 주문으로 집계되지 않습니다.</b>':''}</div>
  ${err?'<div class="alert">주문을 보내지 못했습니다. 다시 눌러 보시고, 계속 안 되면 직원을 불러 주세요.</div>':''}
- <div class="mfoot"><button class="btn ghost" data-act="close"${S.sending?' disabled':''}>다시 고르기</button><button class="cta" data-act="send"${S.sending||calc.some(c=>!c.ok)?' disabled':''}>${S.sending?'보내는 중…':'이대로 주문하기'}</button></div>`,'big');
+ <div class="mfoot"><button class="btn ghost" data-act="close"${S.sending?' disabled':''}>다시 고르기</button>${payOn()?`${payCfgC().counter?`<button class="btn ghost" data-act="send"${S.sending||S.paying||calc.some(c=>!c.ok)?' disabled':''}>${S.sending?'보내는 중…':'카운터에서 결제 (후불)'}</button>`:''}<button class="cta" data-act="qrpay"${S.sending||S.paying||calc.some(c=>!c.ok)?' disabled':''}>${S.paying?'준비 중…':'QR 결제하고 주문하기'}</button>`:`<button class="cta" data-act="send"${S.sending||calc.some(c=>!c.ok)?' disabled':''}>${S.sending?'보내는 중…':'이대로 주문하기'}</button>`}</div>`,'big');
 }
 async function sendOrder(){
  if(S.sending)return;const t=me();if(!t)return;if(!isOpen()){closeModal();closedUI();toast('지금은 영업 준비 중입니다','bad');return}const calc=S.cart.map(lineCalc);if(!S.cart.length||calc.some(c=>!c.ok))return reviewModal();
@@ -864,7 +890,7 @@ function counterShell(){
 const inEdit=()=>{const a=document.activeElement;if(!a||!$('#kmain')||!$('#kmain').contains(a))return false;if(a.tagName==='INPUT')return !/^(checkbox|radio|range|file|button|submit|date)$/.test(a.type);return /^(TEXTAREA|SELECT)$/.test(a.tagName)};
 function counterTab(){
  const k=$('#kmain');if(!k)return;openUI();
- const nNew=S.orders.filter(o=>o.status==='new'&&(S.showTest||!o.test)).length;const nDec=S.decisions.filter(d=>d.status!=='done').length;const nInc=S.incidents.filter(i=>!i.endAt).length;
+ const nNew=S.orders.filter(o=>o.status==='new'&&(S.showTest||!o.test||o.payId)).length;const nDec=S.decisions.filter(d=>d.status!=='done').length;const nInc=S.incidents.filter(i=>!i.endAt).length;
  $('#ktabs').innerHTML=TABS.map(([id,l])=>`<button class="${S.tab===id?'on':''}" data-act="tab" data-t="${id}">${TABICON[id]||''}<span>${l}</span>${id==='orders'&&nNew?`<span class="n">${nNew}</span>`:''}${id==='check'&&nDec?`<span class="n w">${nDec}</span>`:''}${id==='incidents'&&nInc?`<span class="n w">${nInc}</span>`:''}</button>`).join('');
  if(inEdit()||S.dragging){S.pending=true;return}
  k.innerHTML=({orders:vOrders,settle:vSettle,menu:vMenu,tablets:vTablets,sales:vSales,incidents:vIncidents,check:vCheck,settings:vSettings})[S.tab]();
@@ -879,7 +905,7 @@ function ticket(o){const btn=(a,l,c)=>`<button class="btn sm ${c||''}" data-act=
  ${o.memo?`<div class="memo">${esc(o.memo)}</div>`:''}${o.status==='canceled'&&o.cancelReason?`<div class="memo">취소 사유: ${esc(o.cancelReason)}</div>`:''}
  <footer><span class="tag ${o.pay==='paid'?'paid':'unpaid'}">${o.pay==='paid'?'결제 완료'+(o.payMethod?' · '+esc(o.payMethod):''):'미결제'}</span><b>${won(o.total)}</b></footer><div class="acts">${acts}</div></article>`}
 function vOrders(){
- const os=S.orders.filter(o=>S.showTest||!o.test);const by=s=>os.filter(o=>o.status===s);
+ const os=S.orders.filter(o=>S.showTest||!o.test||o.payId);const by=s=>os.filter(o=>o.status===s);
  const done=by('done').filter(o=>o.dateKey===S.today).reverse(),can=by('canceled').filter(o=>o.dateKey===S.today).reverse();
  return `<div class="bar"><h2>주문 현황</h2><label class="ck"><input type="checkbox" data-act="showtest"${S.showTest?' checked':''}> 테스트 주문 보기</label></div>
  <div class="board"><section class="col"><h3>신규 <span>${by('new').length}</span></h3>${by('new').map(ticket).join('')||'<div class="empty">새 주문 없음</div>'}</section>
@@ -1013,6 +1039,10 @@ function vSettings(){const c=S.config;const t=me()||{};
   <div class="slbtn"><button class="btn sm ghost" data-act="slup" data-i="${i}"${i?'':' disabled'}>▲</button><button class="btn sm ghost" data-act="sldn" data-i="${i}"${i<sl.length-1?'':' disabled'}>▼</button><button class="btn sm ghost" data-act="sldel" data-i="${i}">삭제</button></div></div>`}).join('')}</div>
  <div class="catrow">${S.assets?`<label class="btn${sl.length>=SL_MAX?' ghost':''}">사진 추가 (여러 장 한 번에)<input type="file" accept="image/*" multiple data-up="slides" hidden${sl.length>=SL_MAX?' disabled':''}></label>`:''}<span class="fine">${sl.length} / ${SL_MAX}장 · 가로세로 4:3 사진이 가장 꽉 차게 나옵니다</span></div>
  <details><summary>기본 그림 (사진이 없거나 기간에 맞는 사진이 없을 때)</summary>${closedSrc()?`<img src="${esc(closedSrc())}" alt="기본 그림" style="width:100%;max-height:200px;object-fit:contain;border-radius:12px;background:#0d1a14">`:'<span class="fine">기본 그림이 없으면 "영업 준비 중" 글씨만 나옵니다.</span>'}<div class="catrow">${S.assets?'<label class="btn ghost">기본 그림 바꾸기<input type="file" accept="image/*" data-up="closedimg" hidden></label>':''}${S.config.closedImg&&window.TOD_API?'<button class="btn ghost" data-act="closedimgreset">처음 기본 그림으로</button>':''}</div></details></div>`})()}
+ ${window.TOD_API?(()=>{const pm=payCfgC();return `<div class="panel"><h3>결제 (QR 결제)</h3><span class="fine">켜면 손님이 주문할 때 태블릿에 QR이 뜨고, 휴대폰으로 결제하면 주문이 바로 들어옵니다. 지금은 <b>테스트</b>만 가능합니다. 실제 결제는 퍼스트포스 연동 자료(또는 결제 회사 가입)를 받은 뒤 연결합니다.</span>
+ <label class="form"><span>결제 방식</span><select id="payMode"><option value="off"${pm.mode==='off'?' selected':''}>끄기 · 지금처럼 카운터에서 후불</option><option value="test"${pm.mode==='test'?' selected':''}>테스트 QR 결제 (실제로 돈이 나가지 않음)</option><option value="pos" disabled>포스 연동 (퍼스트포스) · 연동 자료 받으면 열림</option></select></label>
+ <label class="vchk"><input type="checkbox" id="payCounter"${pm.counter!==false?' checked':''}> 손님이 '카운터에서 결제 (후불)'도 고를 수 있게</label>
+ <div class="catrow"><button class="btn" data-act="paysave">결제 설정 저장</button></div></div>`})():''}
  ${window.TOD_API?(()=>{const pc=pcfg();return `<div class="panel"><h3>주문서 프린터 <span class="fine">매장 서버 컴퓨터의 COM 포트</span></h3>
  <label class="vchk"><input type="checkbox" id="pOn"${pc.on?' checked':''}> 주문서 출력하기</label>
  <div class="vgrid"><label>COM 포트<input id="pPort" list="pPorts" value="${esc(pc.port)}" placeholder="예: COM3"><datalist id="pPorts">${(S.pPorts||[]).map(x=>`<option value="${esc(x)}">`).join('')}</datalist></label>
@@ -1117,6 +1147,10 @@ async function act(a,d,b){const c=S.mctx;
  case 'psave':{const pc=readPrinterForm();if(pc.on&&!pc.port){toast('COM 포트를 넣어 주세요','bad');return}if(await saveConfig({printer:pc}))toast('프린터 설정을 저장했습니다','ok');break}
  case 'ptest':{const pc=readPrinterForm();if(!pc.port){toast('COM 포트를 넣어 주세요','bad');return}b.disabled=true;toast('테스트 출력 중…');try{await window.TOD_API('/api/print/test',{printer:pc});toast('테스트 출력을 보냈습니다. 종이가 나왔는지 확인하세요','ok')}catch(e){toast(e.message||'출력하지 못했습니다','bad')}finally{b.disabled=false}break}
  case 'oprint':{b.disabled=true;try{await window.TOD_API('/api/print/order',{id:d.id});toast('주문서를 출력했습니다','ok')}catch(e){toast(e.message||'출력하지 못했습니다','bad')}finally{b.disabled=false}break}
+ case 'qrpay':await qrPayStart();break;
+ case 'qrcancel':{const id=S.mctx&&S.mctx.id;qrStop();S.mctx=null;closeModal();if(id){try{await window.TOD_API('/api/pay/cancel',{id})}catch(e){}}reviewModal();break}
+ case 'qrtest':{const id=S.mctx&&S.mctx.id;if(!id)break;b.disabled=true;try{await fetch('/pay/'+id+'/test',{method:'POST'})}catch(e){toast('테스트 결제를 보내지 못했습니다','bad')}b.disabled=false;break}
+ case 'paysave':{const m=$('#payMode').value,c=$('#payCounter').checked;if(await saveConfig({payment:{mode:['off','test'].includes(m)?m:'off',counter:c}}))toast(m==='off'?'QR 결제를 껐습니다':'테스트 QR 결제를 켰습니다','ok');counterTab();break}
  case 'morder':S.mOrder=!S.mOrder;counterTab();break;
  case 'mup':case 'mdn':{const m=menuById(d.id);if(!m)return;const g=catOrder(m.cat).filter(x=>gk(x)===gk(m));moveTo(m.id,g.findIndex(x=>x.id===m.id)+1+(a==='mup'?-1:1));break}
  case 'msold':{const m=menuById(d.id);if(m)await w('menu/'+m.id,r=>r.update({soldOut:!m.soldOut}));break}
